@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: SANAD demo tipping and family-finance prototype API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: sanad
+    description: SANAD demo application
 paths:
   /healthz:
     get:
@@ -24,6 +26,471 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /workers:
+    get:
+      operationId: listWorkers
+      tags: [sanad]
+      summary: List workers
+      responses:
+        "200":
+          description: Worker directory
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Worker"
+    post:
+      operationId: createWorker
+      tags: [sanad]
+      summary: Register a demo worker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkerInput"
+      responses:
+        "201":
+          description: Registered worker
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Worker"
+  /workers/{publicId}:
+    get:
+      operationId: getWorkerByPublicId
+      tags: [sanad]
+      summary: Look up a worker using their public QR identifier
+      parameters:
+        - in: path
+          name: publicId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public worker profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicWorker"
+        "404":
+          description: Worker not found
+    delete:
+      operationId: deleteWorker
+      tags: [sanad]
+      summary: Remove a demo worker
+      parameters:
+        - in: path
+          name: publicId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Worker removed
+        "404":
+          description: Worker not found
+  /workers/{publicId}/dashboard:
+    get:
+      operationId: getWorkerDashboard
+      tags: [sanad]
+      summary: Get worker tip and settlement overview
+      parameters:
+        - in: path
+          name: publicId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Worker dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkerDashboard"
+        "404":
+          description: Worker not found
+  /tips:
+    get:
+      operationId: listTips
+      tags: [sanad]
+      summary: List simulated tips
+      parameters:
+        - in: query
+          name: publicId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tip"
+    post:
+      operationId: createDemoTip
+      tags: [sanad]
+      summary: Record an explicitly simulated tip
+      description: No money moves; this is a class-project demonstration only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemoTipInput"
+      responses:
+        "201":
+          description: Demo tip receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tip"
+        "404":
+          description: Worker not found
+  /tips/{reference}:
+    get:
+      operationId: getTipReceipt
+      tags: [sanad]
+      summary: Retrieve a demo receipt
+      parameters:
+        - in: path
+          name: reference
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Demo receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tip"
+        "404":
+          description: Receipt not found
+  /companies/summary:
+    get:
+      operationId: getCompanySummary
+      tags: [sanad]
+      summary: Get worker totals for the company demo
+      responses:
+        "200":
+          description: Company summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanySummary"
+  /settlements:
+    get:
+      operationId: listSettlements
+      tags: [sanad]
+      summary: List monthly demo settlements
+      responses:
+        "200":
+          description: Settlement history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Settlement"
+    post:
+      operationId: createMonthlySettlements
+      tags: [sanad]
+      summary: Create current-month pending settlement records
+      responses:
+        "201":
+          description: Created or existing monthly settlements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Settlement"
+  /settlements/{id}:
+    patch:
+      operationId: updateSettlementStatus
+      tags: [sanad]
+      summary: Simulate a settlement status update
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettlementStatusInput"
+      responses:
+        "200":
+          description: Updated simulated settlement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "404":
+          description: Settlement not found
+  /admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [sanad]
+      summary: Get demo platform overview
+      responses:
+        "200":
+          description: Admin overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminOverview"
+  /children:
+    get:
+      operationId: listChildren
+      tags: [sanad]
+      summary: List child profiles in the demo
+      responses:
+        "200":
+          description: Child profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Child"
+    post:
+      operationId: createChild
+      tags: [sanad]
+      summary: Create a demo child profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChildInput"
+      responses:
+        "201":
+          description: Child profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Child"
+  /children/{id}:
+    patch:
+      operationId: updateChild
+      tags: [sanad]
+      summary: Update a demo child's spending limit
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChildUpdate"
+      responses:
+        "200":
+          description: Updated child profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Child"
+        "404":
+          description: Child profile not found
+  /children/{id}/dashboard:
+    get:
+      operationId: getChildDashboard
+      tags: [sanad]
+      summary: Get child wallet, activity, goals, and approvals
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Child dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildDashboard"
+        "404":
+          description: Child not found
+  /children/{id}/allowances:
+    post:
+      operationId: createAllowance
+      tags: [sanad]
+      summary: Record a simulated allowance or Eidiyah
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AllowanceInput"
+      responses:
+        "201":
+          description: Demo allowance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChildActivity"
+        "404":
+          description: Child not found
+  /children/{id}/goals:
+    post:
+      operationId: createSavingsGoal
+      tags: [sanad]
+      summary: Add a savings goal
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SavingsGoalInput"
+      responses:
+        "201":
+          description: Savings goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavingsGoal"
+        "404":
+          description: Child not found
+  /children/{id}/goals/{goalId}/contributions:
+    post:
+      operationId: contributeToSavingsGoal
+      tags: [sanad]
+      summary: Record a simulated goal contribution
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: goalId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalContributionInput"
+      responses:
+        "200":
+          description: Updated savings goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavingsGoal"
+        "404":
+          description: Child or goal not found
+  /children/{id}/approvals:
+    post:
+      operationId: createApprovalRequest
+      tags: [sanad]
+      summary: Submit a demo purchase approval request
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalInput"
+      responses:
+        "201":
+          description: Approval request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalRequest"
+        "404":
+          description: Child not found
+  /approvals/{id}:
+    patch:
+      operationId: updateApprovalRequest
+      tags: [sanad]
+      summary: Simulate a parent approval decision
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalStatusInput"
+      responses:
+        "200":
+          description: Updated approval request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalRequest"
+        "404":
+          description: Approval request not found
+  /demo-transfers:
+    get:
+      operationId: listDemoTransfers
+      tags: [sanad]
+      summary: List simulated person-to-person transfers
+      responses:
+        "200":
+          description: Demo transfers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DemoTransfer"
+    post:
+      operationId: createDemoTransfer
+      tags: [sanad]
+      summary: Record a simulated person-to-person transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DemoTransferInput"
+      responses:
+        "201":
+          description: Simulated transfer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DemoTransfer"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +500,230 @@ components:
           type: string
       required:
         - status
+    PublicWorker:
+      type: object
+      required: [publicId, name, workplace, jobTitle, company, createdAt]
+      properties:
+        publicId: { type: string }
+        name: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        workplace: { type: string }
+        jobTitle: { type: string }
+        company: { type: string }
+        createdAt: { type: string, format: date-time }
+    Worker:
+      type: object
+      required: [id, publicId, name, workplace, jobTitle, company, createdAt]
+      properties:
+        id: { type: integer }
+        publicId: { type: string }
+        name: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        workplace: { type: string }
+        jobTitle: { type: string }
+        company: { type: string }
+        createdAt: { type: string, format: date-time }
+    WorkerInput:
+      type: object
+      required: [name, workplace, jobTitle, company]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        avatarUrl: { type: ["string", "null"], maxLength: 2048 }
+        workplace: { type: string, minLength: 2, maxLength: 120 }
+        jobTitle: { type: string, minLength: 2, maxLength: 80 }
+        company: { type: string, minLength: 2, maxLength: 120 }
+    Tip:
+      type: object
+      required: [reference, publicId, workerName, amountFils, status, createdAt]
+      properties:
+        reference: { type: string }
+        publicId: { type: string }
+        workerName: { type: string }
+        amountFils: { type: integer }
+        rating: { type: ["integer", "null"] }
+        message: { type: ["string", "null"] }
+        status: { type: string, enum: [demo_completed] }
+        createdAt: { type: string, format: date-time }
+    DemoTipInput:
+      type: object
+      required: [publicId, amountFils]
+      properties:
+        publicId: { type: string }
+        amountFils: { type: integer, enum: [250, 500, 1000] }
+        rating: { type: ["integer", "null"], minimum: 1, maximum: 5 }
+        message: { type: ["string", "null"], maxLength: 240 }
+    WorkerDashboard:
+      type: object
+      required: [worker, monthlyFils, totalTips, averageRating, recentTips, settlements, settlementStatus, qrUrl]
+      properties:
+        worker: { $ref: "#/components/schemas/PublicWorker" }
+        monthlyFils: { type: integer }
+        totalTips: { type: integer }
+        averageRating: { type: ["number", "null"] }
+        recentTips:
+          type: array
+          items: { $ref: "#/components/schemas/Tip" }
+        settlements:
+          type: array
+          items: { $ref: "#/components/schemas/Settlement" }
+        settlementStatus: { type: string, enum: [pending, processing, completed] }
+        qrUrl: { type: string }
+    CompanyWorkerSummary:
+      type: object
+      required: [worker, monthFils, totalTips, averageRating]
+      properties:
+        worker: { $ref: "#/components/schemas/Worker" }
+        monthFils: { type: integer }
+        totalTips: { type: integer }
+        averageRating: { type: ["number", "null"] }
+    CompanySummary:
+      type: object
+      required: [workers, monthFils, totalTips]
+      properties:
+        workers:
+          type: array
+          items: { $ref: "#/components/schemas/CompanyWorkerSummary" }
+        monthFils: { type: integer }
+        totalTips: { type: integer }
+    Settlement:
+      type: object
+      required: [id, publicId, workerName, month, amountFils, status, updatedAt]
+      properties:
+        id: { type: integer }
+        publicId: { type: string }
+        workerName: { type: string }
+        month: { type: string }
+        amountFils: { type: integer }
+        status: { type: string, enum: [pending, processing, completed] }
+        updatedAt: { type: string, format: date-time }
+    SettlementStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [pending, processing, completed] }
+    AdminOverview:
+      type: object
+      required: [workerCount, tipCount, totalFils, workers, recentTips]
+      properties:
+        workerCount: { type: integer }
+        tipCount: { type: integer }
+        totalFils: { type: integer }
+        workers:
+          type: array
+          items: { $ref: "#/components/schemas/Worker" }
+        recentTips:
+          type: array
+          items: { $ref: "#/components/schemas/Tip" }
+    Child:
+      type: object
+      required: [id, name, age, spendingLimitFils, balanceFils, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        age: { type: integer }
+        spendingLimitFils: { type: integer }
+        balanceFils: { type: integer }
+        createdAt: { type: string, format: date-time }
+    ChildInput:
+      type: object
+      required: [name, age, spendingLimitFils]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        age: { type: integer, minimum: 5, maximum: 17 }
+        spendingLimitFils: { type: integer, minimum: 0 }
+    ChildUpdate:
+      type: object
+      required: [spendingLimitFils]
+      properties:
+        spendingLimitFils: { type: integer, minimum: 0 }
+    ChildActivity:
+      type: object
+      required: [id, childId, title, amountFils, kind, createdAt]
+      properties:
+        id: { type: integer }
+        childId: { type: integer }
+        title: { type: string }
+        amountFils: { type: integer }
+        kind: { type: string, enum: [allowance, eidiyah, goal, purchase] }
+        createdAt: { type: string, format: date-time }
+    SavingsGoal:
+      type: object
+      required: [id, childId, name, targetFils, savedFils, createdAt]
+      properties:
+        id: { type: integer }
+        childId: { type: integer }
+        name: { type: string }
+        targetFils: { type: integer }
+        savedFils: { type: integer }
+        createdAt: { type: string, format: date-time }
+    ApprovalRequest:
+      type: object
+      required: [id, childId, childName, item, amountFils, status, createdAt]
+      properties:
+        id: { type: integer }
+        childId: { type: integer }
+        childName: { type: string }
+        item: { type: string }
+        amountFils: { type: integer }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+    ChildDashboard:
+      type: object
+      required: [child, activity, goals, approvals]
+      properties:
+        child: { $ref: "#/components/schemas/Child" }
+        activity:
+          type: array
+          items: { $ref: "#/components/schemas/ChildActivity" }
+        goals:
+          type: array
+          items: { $ref: "#/components/schemas/SavingsGoal" }
+        approvals:
+          type: array
+          items: { $ref: "#/components/schemas/ApprovalRequest" }
+    AllowanceInput:
+      type: object
+      required: [amountFils, kind]
+      properties:
+        amountFils: { type: integer, minimum: 1 }
+        kind: { type: string, enum: [allowance, eidiyah] }
+    SavingsGoalInput:
+      type: object
+      required: [name, targetFils]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        targetFils: { type: integer, minimum: 1 }
+    GoalContributionInput:
+      type: object
+      required: [amountFils]
+      properties:
+        amountFils: { type: integer, minimum: 1 }
+    ApprovalInput:
+      type: object
+      required: [item, amountFils]
+      properties:
+        item: { type: string, minLength: 2, maxLength: 100 }
+        amountFils: { type: integer, minimum: 1 }
+    ApprovalStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [approved, rejected] }
+    DemoTransfer:
+      type: object
+      required: [reference, sender, recipient, amountFils, status, createdAt]
+      properties:
+        reference: { type: string }
+        sender: { type: string }
+        recipient: { type: string }
+        amountFils: { type: integer }
+        status: { type: string, enum: [demo_completed] }
+        createdAt: { type: string, format: date-time }
+    DemoTransferInput:
+      type: object
+      required: [sender, recipient, amountFils]
+      properties:
+        sender: { type: string, minLength: 2, maxLength: 80 }
+        recipient: { type: string, minLength: 2, maxLength: 80 }
+        amountFils: { type: integer, minimum: 1 }
 

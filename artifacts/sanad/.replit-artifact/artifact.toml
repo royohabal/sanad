@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "SANAD — سند"
+description = "A Kuwait-focused digital tipping and money-management prototype. Customers can tip workers through public QR pages, workers can view tips and badges, admins can manage demo workers and transactions, and role-based demo dashboards show the product direction."
+version = "1.0.0"
+id = "artifacts/sanad"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26138
+
+[services.development]
+run = "pnpm --filter @workspace/sanad run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/sanad", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/sanad/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26138"
+BASE_PATH = "/"
