@@ -1,0 +1,238 @@
+# Build SANAD (سند) — A Working Fintech Web Application
+
+I want you to build **SANAD (سند)**, a modern Kuwait-focused digital tipping and money-management web application. This is a real full-stack class project, not just a static UI mockup.
+
+## Step 1: Inspect the existing project
+
+Before changing anything:
+- Inspect the existing files, framework, dependencies, database configuration, and current implementation.
+- If I provide Stitch designs or screenshots, use them as the main visual reference.
+- Preserve working code and existing configurations wherever possible.
+- Do not delete or rebuild the project unnecessarily.
+- Explain briefly what already exists and what needs to be implemented.
+
+If the project already has a framework, follow its existing architecture unless there is a strong technical reason to change it.
+
+## Step 2: Brand and design
+
+Build the interface around this exact SANAD design system:
+
+- Deep Burgundy: `#581C2B`
+- Warm Coral: `#EF805F`
+- Warm Cream: `#F5E8D8`
+- Dark Wine: `#3B1720`
+
+Brand name: SANAD (سند)
+
+Tagline: **Scan. Send. Done.**
+
+Design requirements:
+- Premium, warm, modern fintech aesthetic.
+- Rounded cards, clear typography, subtle shadows, smooth transitions, and purposeful micro-animations.
+- Subtle Kuwaiti and Arab-inspired decorative details.
+- Fully responsive mobile and desktop layouts.
+- Arabic and English language toggle, including proper RTL layout for Arabic.
+- Accessible contrast, readable text, loading states, empty states, and helpful error messages.
+- Avoid generic AI-looking dashboards, excessive text, and unnecessary decoration.
+
+Use my Stitch design as the source of truth for the layout and visual style. Do not replace it with an unrelated template.
+
+## Step 3: Five user roles
+
+Create a role-selection page with these five roles:
+
+1. **Parent:** manage children's allowances, spending limits, purchase approvals, and savings goals.
+2. **Child:** view balance, receive money and Eidiyah, track spending, earn badges, and monitor savings goals.
+3. **Company:** manage workers, view individual tip totals and customer ratings, and prepare monthly settlement reports.
+4. **Worker:** view accumulated tips, ratings, thank-you messages, QR badge, and settlement history.
+5. **Individual:** send and request money, view transactions, and track transfer status.
+
+Each role should have an appropriate dashboard and navigation. Users should only see information and actions permitted for their role.
+
+For the prototype, role-specific demo accounts or a safe demo-mode flow are acceptable. Do not present a fake login or pretend authentication is secure if it is not implemented.
+
+## Step 4: Build the core worker tipping flow first
+
+This is the most important feature and must work from beginning to end.
+
+### A. Worker registration
+
+Create a worker registration form with:
+- Name
+- Profile photo or avatar
+- Workplace/company
+- Worker role or job title
+
+When a worker is created:
+- Save the worker to the database.
+- Generate a unique, random public QR code identifier.
+- Create a public tipping URL associated with that identifier.
+- Display the worker's QR code.
+- Allow the worker to download or print a simple badge containing their name, SANAD branding, and QR code.
+
+Never expose a database ID or sensitive worker information in the public QR URL.
+
+### B. Public tipping page
+
+When a customer scans the QR code, open a mobile-friendly public webpage.
+
+The customer must **not need to create a SANAD account**.
+
+Display:
+- Worker photo, name, and workplace.
+- A short message: “Show your appreciation.”
+- Three large amount buttons: **250 fils, 500 fils, and 1 KWD**.
+- A clear selected state.
+- Optional star rating.
+- Optional short thank-you message.
+- One prominent “Continue to Payment” button.
+- A reassurance that no SANAD account is required.
+
+Make this flow extremely fast. Do not require registration, a long form, or mandatory feedback.
+
+### C. Payment
+
+Integrate Stripe Checkout in test mode if the project environment supports it.
+
+Requirements:
+- Keep the Stripe secret key on the server, in environment variables.
+- Never expose secret keys in frontend code.
+- Validate the worker, amount, and request data on the server.
+- Calculate the actual payment amount on the server, not from a trusted client-supplied price.
+- Use an appropriate supported test currency and clearly disclose any conversion from KWD. Never silently charge a different currency.
+- Verify payment success server-side using Stripe's supported confirmation mechanism, preferably a verified webhook.
+- Handle duplicate webhook events safely and idempotently.
+- Do not record a tip as paid merely because the customer visits the success URL.
+- Store the Stripe session or payment reference to prevent duplicate tip records.
+
+If payment credentials are missing, build the integration structure and clearly explain which environment variables are required. Do not pretend a payment succeeded.
+
+### D. Success page
+
+After verified payment success, show:
+- “Tip sent successfully!”
+- Worker name
+- Amount and currency actually charged
+- Transaction reference
+- Rating or message, if provided
+- A Done button
+
+If payment is pending or verification has not completed, show the correct pending state instead of falsely confirming success.
+
+### E. Worker dashboard
+
+Show:
+- Confirmed tips this month
+- Total number of successful tips
+- Average customer rating
+- Recent tips and thank-you messages
+- QR code and printable badge
+- Current month's settlement status
+- Previous settlement history
+
+Use real database records, not hardcoded sample totals. Clearly label any demo data.
+
+## Step 5: Monthly settlement system
+
+Tips should accumulate during the month.
+
+For example, if a worker receives 75 successful tips worth 32 KWD in October, display the confirmed total and show that monthly settlement is pending until the payout is actually processed.
+
+Build:
+- Monthly totals grouped by worker.
+- Company view of each worker's confirmed tips.
+- Settlement reports with month, worker, amount, and status.
+- Statuses: Pending, Processing, Completed.
+- Worker view of settlement history.
+- A demo-only way to mark a settlement as processed, with the action recorded in the database and clearly labelled as simulated.
+
+Do not build instant worker withdrawals. Do not imply that the employer automatically owns or holds workers' tips; keep the settlement workflow configurable.
+
+## Step 6: Implement the other role dashboards
+
+After the core tipping flow works, build these dashboards.
+
+**Individual dashboard**
+- Send money and request money interface.
+- QR scanning or QR-link entry point.
+- Transaction history with clear statuses.
+- Demo transfer flow where actual payment rails are not implemented.
+
+**Parent dashboard**
+- Child profiles.
+- Send allowance.
+- Spending limits.
+- Purchase approval requests.
+- Savings goals and activity.
+
+**Child dashboard**
+- Wallet balance.
+- Receive-money and Eidiyah experience.
+- Savings progress and achievement badges.
+- Spending history.
+- Parent approval status.
+
+**Company dashboard**
+- Worker directory.
+- Worker tip totals and customer ratings.
+- Search and filters.
+- Monthly settlement report.
+- Settlement history and status.
+
+Connect all dashboards to the appropriate database records. If a feature is only simulated, label it as a prototype or demo feature.
+
+## Step 7: Database and security
+
+Use the project's existing database if it is already configured. Otherwise, use MongoDB Atlas if supported by the environment.
+
+Create suitable persistent models for:
+- Users and roles.
+- Workers and public QR identifiers.
+- Companies and worker relationships.
+- Tips and payment references.
+- Ratings and thank-you messages.
+- Monthly settlements.
+- Demo allowances, transactions, and savings goals.
+
+Requirements:
+- Use environment variables for secrets and database credentials.
+- Validate all inputs on the server.
+- Enforce authorization on protected routes and API endpoints.
+- Never trust client-supplied balances, payment statuses, tip totals, or settlement amounts.
+- Prevent duplicate payment processing.
+- Do not expose private user or payment information through public QR pages.
+- Do not replace the database with in-memory arrays or hardcoded data.
+- Do not store raw card details.
+
+Real stored-value wallets, child accounts, person-to-person transfers, and payouts require suitable payment-provider support and regulatory review for Kuwait. For this class prototype, clearly distinguish simulated wallet functionality from actual processed payments.
+
+## Step 8: Testing and delivery
+
+Before declaring the project complete, test the main flow:
+
+1. Create a worker.
+2. Generate their QR code.
+3. Open the public QR link without signing in.
+4. Select 500 fils and optionally add a rating and message.
+5. Complete a Stripe test payment, if credentials are configured.
+6. Verify that the tip is recorded exactly once.
+7. Confirm that the worker dashboard updates from database records.
+8. Confirm that the company can see the worker's monthly total.
+9. Test the settlement status workflow.
+10. Test invalid QR codes, cancelled payments, pending payments, and failed requests.
+11. Check mobile responsiveness and Arabic RTL layout.
+
+At the end, tell me:
+- Which features are fully working.
+- Which features are simulated.
+- Which environment variables I must configure.
+- Which tests passed or failed.
+- What I need to do next to deploy the project.
+
+## Implementation rule
+
+**Do not attempt to implement every feature in one untested change.**
+
+First inspect the existing project and implement the foundation plus the complete worker registration → QR code → public tipping page flow. Test it, then continue with payment verification, dashboards, and monthly settlements in separate stages.
+
+Keep the code organized, maintainable, and suitable for a university project demonstration.
