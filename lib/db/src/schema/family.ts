@@ -4,12 +4,14 @@ import {
   pgTable,
   serial,
   timestamp,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { z } from "zod/v4";
 
 export const sanadChildrenTable = pgTable("sanad_children", {
   id: serial("id").primaryKey(),
+  publicId: uuid("public_id").defaultRandom().notNull(),
   name: varchar("name", { length: 80 }).notNull(),
   age: integer("age").notNull(),
   spendingLimitFils: integer("spending_limit_fils").notNull().default(0),
@@ -20,6 +22,7 @@ export const sanadChildrenTable = pgTable("sanad_children", {
 
 export const insertSanadChildSchema = createInsertSchema(sanadChildrenTable).omit({
   id: true,
+  publicId: true,
   createdAt: true,
 });
 export type InsertSanadChild = z.infer<typeof insertSanadChildSchema>;

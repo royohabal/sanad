@@ -279,6 +279,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Child"
+  /child-recipients/{publicId}:
+    get:
+      operationId: getPublicChildRecipient
+      tags: [sanad]
+      summary: Look up a child by their public QR identifier
+      parameters:
+        - in: path
+          name: publicId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Limited public recipient profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicChildRecipient"
+        "404":
+          description: Child not found
+  /child-recipients/{publicId}/transfers:
+    post:
+      operationId: createPublicChildTransfer
+      tags: [sanad]
+      summary: Record a simulated no-login transfer to a child
+      parameters:
+        - in: path
+          name: publicId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicChildTransferInput"
+      responses:
+        "201":
+          description: Simulated transfer receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicChildTransferReceipt"
+        "400":
+          description: Invalid transfer amount
+        "404":
+          description: Child not found
   /children/{id}:
     patch:
       operationId: updateChild
@@ -616,9 +666,10 @@ components:
           items: { $ref: "#/components/schemas/Tip" }
     Child:
       type: object
-      required: [id, name, age, spendingLimitFils, balanceFils, createdAt]
+      required: [id, publicId, name, age, spendingLimitFils, balanceFils, createdAt]
       properties:
         id: { type: integer }
+        publicId: { type: string, format: uuid }
         name: { type: string }
         age: { type: integer }
         spendingLimitFils: { type: integer }
@@ -644,7 +695,7 @@ components:
         childId: { type: integer }
         title: { type: string }
         amountFils: { type: integer }
-        kind: { type: string, enum: [allowance, eidiyah, goal, purchase] }
+        kind: { type: string, enum: [allowance, eidiyah, goal, purchase, transfer] }
         createdAt: { type: string, format: date-time }
     SavingsGoal:
       type: object
@@ -681,6 +732,25 @@ components:
         approvals:
           type: array
           items: { $ref: "#/components/schemas/ApprovalRequest" }
+    PublicChildRecipient:
+      type: object
+      required: [publicId, firstName]
+      properties:
+        publicId: { type: string, format: uuid }
+        firstName: { type: string }
+    PublicChildTransferInput:
+      type: object
+      required: [amountFils]
+      properties:
+        amountFils: { type: integer, minimum: 250, maximum: 1000000 }
+    PublicChildTransferReceipt:
+      type: object
+      required: [firstName, amountFils, createdAt, demoOnly]
+      properties:
+        firstName: { type: string }
+        amountFils: { type: integer }
+        createdAt: { type: string, format: date-time }
+        demoOnly: { type: boolean, const: true }
     AllowanceInput:
       type: object
       required: [amountFils, kind]

@@ -18,12 +18,13 @@ import {
   useCreateChild, useUpdateChild, useGetChildDashboard, getGetChildDashboardQueryKey, useCreateAllowance, useCreateSavingsGoal,
   useContributeToSavingsGoal, useCreateApprovalRequest, useUpdateApprovalRequest,
   useListDemoTransfers, getListDemoTransfersQueryKey, useCreateDemoTransfer,
+  useGetPublicChildRecipient, getGetPublicChildRecipientQueryKey, useCreatePublicChildTransfer,
 } from '@workspace/api-client-react';
 import type { Worker, Tip, Child, WorkerDashboard } from '@workspace/api-client-react';
 import {
-  ArrowRight, ArrowUpRight, BadgeCheck, Banknote, BriefcaseBusiness, CircleHelp,
-  Clock3, Coffee, Download, Heart, Languages, Menu, Search,
-  ShieldAlert, Sparkles, Star, Users, Wallet, X,
+  ArrowRight, ArrowUpRight, BadgeCheck, Banknote, BriefcaseBusiness, CheckCircle2, CircleHelp,
+  Clock3, Coffee, Copy, Download, Heart, Languages, Menu, Search,
+  QrCode, ShieldAlert, Sparkles, Star, Users, Wallet, X,
 } from 'lucide-react';
 
 const queryClient = new QueryClient();
@@ -37,36 +38,36 @@ function Brand({ compact = false }: { compact?: boolean }) {
     <span className="leading-tight"><b className="block font-[Manrope] text-[17px] tracking-[.12em]">SANAD <span className="font-sans tracking-normal">سند</span></b>{!compact && <small className="block text-[10px] tracking-[.14em] text-[#f4cfb9]">Scan. Send. Done.</small>}</span>
   </Link>;
 }
-function Header({ demo = false }: { demo?: boolean }) {
+function Header({ demo = false, publicPage = false }: { demo?: boolean; publicPage?: boolean }) {
   const [arabic, setArabic] = useState(() => {
     if (typeof window === 'undefined') return false;
     const queryLanguage = new URLSearchParams(window.location.search).get('lang');
     return queryLanguage === 'ar' || (queryLanguage !== 'en' && window.localStorage.getItem('sanad-language') === 'ar');
   });
   const [open, setOpen] = useState(false);
-  const workers = useListWorkers({query:{queryKey:getListWorkersQueryKey()}});
+  const workers = useListWorkers({query:{queryKey:getListWorkersQueryKey(),enabled:!publicPage}});
   const directTipHref = workers.data?.[0] ? `/tip/${workers.data[0].publicId}` : '/worker';
   useEffect(() => { applyDocumentLanguage(arabic); }, [arabic]);
   return <>
     <header className="sticky top-0 z-30 flex h-[68px] items-center justify-between bg-[#581C2B] px-5 text-white shadow-[0_5px_18px_rgba(59,23,32,.12)] md:px-9">
       <Brand/>
-      <nav className="hidden items-center gap-1 lg:flex">
+      {!publicPage&&<nav className="hidden items-center gap-1 lg:flex">
         {[['Roles','/'],['Individual','/individual'],['Parent','/parent'],['Child','/child/1'],['Company','/company'],['Worker','/worker'],['Admin','/admin']].map(([title, href]) =>
           <Link key={title} href={href} className="rounded-full px-3 py-2 text-[12px] text-[#f7e9dc] transition hover:bg-white/10 hover:text-white">{title}</Link>)}
-      </nav>
+      </nav>}
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => {const next = !arabic; setArabic(next); window.localStorage.setItem('sanad-language', next ? 'ar' : 'en'); const params = new URLSearchParams(window.location.search); params.delete('lang'); window.history.replaceState(null,'',`${window.location.pathname}${params.size?`?${params}`:''}${window.location.hash}`);}} className="flex items-center gap-1 rounded-full border border-white/20 px-2.5 py-2 text-[11px] md:px-3 md:text-xs" data-testid="button-language"><Languages size={14}/>{arabic?'EN':'عربي'}</button>
-        <Link href={directTipHref} className="hidden rounded-full bg-[#EF805F] px-4 py-2 text-xs font-bold text-[#3B1720] md:block">Direct tip <ArrowRight className="ml-1 inline" size={13}/></Link>
+        {!publicPage&&<Link href={directTipHref} className="hidden rounded-full bg-[#EF805F] px-4 py-2 text-xs font-bold text-[#3B1720] md:block">Direct tip <ArrowRight className="ml-1 inline" size={13}/></Link>}
         {demo && <span className="hidden rounded-full bg-white/10 px-3 py-2 text-[10px] text-[#ffd9be] md:block">DEMO MODE</span>}
-        <button className="p-2 lg:hidden" onClick={()=>setOpen(!open)} aria-label="Toggle navigation" data-testid="button-menu">{open?<X size={20}/>:<Menu size={20}/>}</button>
+        {!publicPage&&<button className="p-2 lg:hidden" onClick={()=>setOpen(!open)} aria-label="Toggle navigation" data-testid="button-menu">{open?<X size={20}/>:<Menu size={20}/>}</button>}
       </div>
     </header>
-    {open && <nav className="absolute right-3 top-[62px] z-40 grid w-56 gap-1 rounded-2xl border border-[#eadbcc] bg-[#fffaf4] p-3 shadow-xl lg:hidden">{[['Role selection','/'],['Individual','/individual'],['Parent','/parent'],['Child wallet','/child/1'],['Company','/company'],['Worker','/worker'],['Admin','/admin']].map(([t,h])=><Link key={t} onClick={()=>setOpen(false)} href={h} className="rounded-xl px-3 py-2 text-sm hover:bg-[#f5e8d8]">{t}</Link>)}</nav>}
+    {open && !publicPage && <nav className="absolute right-3 top-[62px] z-40 grid w-56 gap-1 rounded-2xl border border-[#eadbcc] bg-[#fffaf4] p-3 shadow-xl lg:hidden">{[['Role selection','/'],['Individual','/individual'],['Parent','/parent'],['Child wallet','/child/1'],['Company','/company'],['Worker','/worker'],['Admin','/admin']].map(([t,h])=><Link key={t} onClick={()=>setOpen(false)} href={h} className="rounded-xl px-3 py-2 text-sm hover:bg-[#f5e8d8]">{t}</Link>)}</nav>}
   </>;
 }
 function DemoNotice() { return <div className="demo-banner flex items-start gap-2.5 rounded-xl px-4 py-3 text-xs leading-relaxed" data-testid="status-demo-mode"><ShieldAlert className="mt-0.5 shrink-0" size={15}/><span><b>Prototype demo only.</b> No money moves, no payment processing, and no secure account authentication is provided.</span></div>; }
-function Shell({ children, demo = false }: { children: ReactNode; demo?: boolean }) {
-  return <div className="app-shell grain"><Header demo={demo}/><main className="mx-auto max-w-[1220px] px-4 py-6 md:px-8 md:py-9">{demo && <div className="mb-6"><DemoNotice/></div>}{children}</main><footer className="mt-10 border-t border-[#eadbcc] bg-[#fff4e5] px-5 py-5 text-xs text-[#765b4e]"><div className="mx-auto flex max-w-[1220px] flex-wrap items-center justify-between gap-3"><Brand compact/><span>Kuwait’s community-first money prototype</span><span>All money movement shown is simulated.</span></div></footer></div>;
+function Shell({ children, demo = false, publicPage = false }: { children: ReactNode; demo?: boolean; publicPage?: boolean }) {
+  return <div className="app-shell grain"><Header demo={demo} publicPage={publicPage}/><main className="mx-auto max-w-[1220px] px-4 py-6 md:px-8 md:py-9">{demo && <div className="mb-6"><DemoNotice/></div>}{children}</main><footer className="mt-10 border-t border-[#eadbcc] bg-[#fff4e5] px-5 py-5 text-xs text-[#765b4e]"><div className="mx-auto flex max-w-[1220px] flex-wrap items-center justify-between gap-3"><Brand compact/><span>Kuwait’s community-first money prototype</span><span>All money movement shown is simulated.</span></div></footer></div>;
 }
 function PageTitle({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description?: string; action?: ReactNode }) {
   return <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div>{eyebrow&&<p className="mb-2 text-[10px] font-bold uppercase tracking-[.2em] text-[#b66e59]">{eyebrow}</p>}<h1 className="font-[Manrope] text-3xl font-extrabold tracking-[-.045em] text-[#3B1720] md:text-[40px]">{title}</h1>{description&&<p className="mt-2 max-w-2xl text-sm leading-6 text-[#765b4e]">{description}</p>}</div>{action}</div>;
@@ -80,6 +81,10 @@ function SelectField({ label, children, ...props }: React.SelectHTMLAttributes<H
 function Panel({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) { return <section className="card-warm rounded-2xl p-5 md:p-6"><div className="mb-5 flex items-center justify-between gap-3"><h2 className="font-[Manrope] text-lg font-extrabold tracking-tight">{title}</h2>{aside}</div>{children}</section>; }
 function ListSkeleton() { return <div className="space-y-3">{[1,2,3].map(x=><div className="skeleton h-[58px]" key={x}/>)}</div>; }
 function amountInKwd(value: string) { return Math.round(parseFloat(value || '0') * 1000); }
+function publicUrlForPath(path: string) {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return new URL(`${base}${path.startsWith('/') ? path : `/${path}`}`, window.location.origin).toString();
+}
 
 function Home() {
   const health = useHealthCheck({query:{queryKey:getHealthCheckQueryKey()}});
@@ -191,6 +196,16 @@ function AdminPage() {
 }
 
 function ChildSelect({ children, onChange, value }: { children?: Child[]; onChange:(e:React.ChangeEvent<HTMLSelectElement>)=>void; value:string }) { return <SelectField label="Child profile" value={value} onChange={onChange}><option value="">Choose profile</option>{children?.map(c=><option key={c.id} value={c.id}>{c.name} · age {c.age}</option>)}</SelectField>; }
+function ChildQrCard({ child }: { child: Child }) {
+ const [copied,setCopied]=useState(false);
+ const firstName=child.name.trim().split(/\s+/)[0]||'Child';
+ const url=publicUrlForPath(`/give/${child.publicId}`);
+ const copyLink=async()=>{try{await navigator.clipboard.writeText(url);setCopied(true)}catch{setCopied(false)}};
+ return <div className="flex flex-col gap-4 rounded-2xl bg-[#fff5e9] p-4 sm:flex-row sm:items-center">
+  <div className="grid shrink-0 place-items-center rounded-2xl border-[5px] border-white bg-[#f6e7d5] p-2 shadow-inner"><QRCodeSVG value={url} size={104} level="M" fgColor="#581C2B" bgColor="#F6E7D5" title={`SANAD direct transfer QR for ${firstName}`}/></div>
+  <div className="min-w-0 flex-1"><p className="font-[Manrope] text-lg font-extrabold">{firstName}</p><p className="mt-1 text-xs leading-5 text-[#80695b]">Scan to send a simulated transfer directly to this child. No account needed.</p><p className="mt-2 break-all font-mono text-[10px] text-[#8a6e5e]">{url}</p><div className="mt-3 flex flex-wrap gap-2"><Link className="btn-primary text-xs" href={`/give/${child.publicId}`}>Open transfer page <ArrowRight className="ml-1 inline" size={13}/></Link><button className="flex items-center gap-1 rounded-full border border-[#e0cdbb] px-3 py-2 text-xs font-bold" onClick={copyLink}><Copy size={13}/>{copied?'Copied':'Copy QR link'}</button></div></div>
+ </div>;
+}
 function FamilyPage() {
  const qc=useQueryClient(); const childrenQ=useListChildren({query:{queryKey:getListChildrenQueryKey()}});
  const createChild=useCreateChild({mutation:{onSuccess:()=>qc.invalidateQueries({queryKey:getListChildrenQueryKey()})}});
@@ -211,6 +226,7 @@ function FamilyPage() {
  {newOpen&&<Panel title="Create a demo child profile"><div className="grid gap-3 sm:grid-cols-3"><Field label="Child name" value={childName} onChange={e=>setChildName(e.target.value)}/><Field label="Age (5–17)" type="number" min="5" max="17" value={age} onChange={e=>setAge(e.target.value)}/><Field label="Spending limit (KWD)" type="number" step=".001" value={limit} onChange={e=>setLimit(e.target.value)}/><button className="btn-primary sm:col-span-3" disabled={createChild.isPending||!childName} onClick={addChild}>{createChild.isPending?'Creating…':'Create child'}</button></div></Panel>}
  {childrenQ.isLoading?<div className="mt-5"><LoadingCards/></div>:childrenQ.isError?<div className="mt-5"><QueryError retry={()=>childrenQ.refetch()}/></div>:!childrenQ.data?.length?<div className="mt-5"><Empty title="Start with a child profile" detail="Create a fictional profile to explore family features."/></div>:<>
   <div className="mb-5 max-w-xs"><ChildSelect children={childrenQ.data} value={current} onChange={e=>{setSelected(e.target.value);setLimitEdit(null)}}/></div>
+   <div className="mb-5"><Panel title="Child transfer QR codes" aside={<span className="text-[10px] text-[#8a6e5e]">Demo transfers · no account needed</span>}><p className="mb-4 text-xs leading-5 text-[#80695b]">Each QR opens a public send page. Anyone with the code can record a simulated transfer; no real money moves.</p><div className="grid gap-3 lg:grid-cols-2">{childrenQ.data.map(child=><ChildQrCard key={child.id} child={child}/>)}</div></Panel></div>
  {dash.isLoading?<LoadingCards/>:dash.isError?<QueryError retry={()=>dash.refetch()}/>:dash.data&&<><div className="grid gap-4 sm:grid-cols-3"><Stat label="Wallet balance" value={KWD(dash.data.child.balanceFils)} icon={Wallet} detail="Simulated wallet only"/><Stat label="Spending limit" value={KWD(dash.data.child.spendingLimitFils)} icon={Banknote} detail="Monthly guidance"/><Stat label="Savings goals" value={String(dash.data.goals.length)} icon={Sparkles} detail="Keep a small goal in sight"/></div>
  <div className="mt-5 grid gap-5 lg:grid-cols-2">
    <Panel title="Allowance & Eidiyah"><p className="mb-4 text-xs text-[#80695b]">Record simulated family money only — no transfer is made.</p><div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"><SelectField label="Type" value={kind} onChange={e=>setKind(e.target.value as 'allowance'|'eidiyah')}><option value="allowance">Weekly allowance</option><option value="eidiyah">Eidiyah</option></SelectField><Field label="Amount (KWD)" type="number" step=".001" value={amount} onChange={e=>setAmount(e.target.value)}/><button className="btn-primary self-end text-xs" disabled={allowance.isPending||!amount} onClick={()=>allowance.mutate({id:Number(current),data:{amountFils:amountInKwd(amount),kind}})}>{allowance.isPending?'Saving…':'Record'}</button></div><div className="mt-5 grid gap-3 border-t border-[#f0e2d4] pt-4 sm:grid-cols-[1fr_auto] sm:items-end"><Field label="Monthly spending limit (KWD)" type="number" min="0" step=".001" value={limitEdit??(dash.data.child.spendingLimitFils/1000).toFixed(3)} onChange={e=>setLimitEdit(e.target.value)}/><button className="btn-primary text-xs" disabled={updateLimit.isPending||limitEdit===null} onClick={()=>updateLimit.mutate({id:Number(current),data:{spendingLimitFils:amountInKwd(limitEdit??'0')}})}>{updateLimit.isPending?'Saving…':'Update limit'}</button></div>{updateLimit.isError&&<p className="mt-2 text-xs text-red-700">Could not update the spending limit. Please try again.</p>}</Panel>
@@ -236,6 +252,34 @@ function ChildPage() {
  </Shell>;
 }
 
+function ChildTransferPage() {
+ const {publicId=''}=useParams();
+ const recipient=useGetPublicChildRecipient(publicId,{query:{queryKey:getGetPublicChildRecipientQueryKey(publicId)}});
+ const transfer=useCreatePublicChildTransfer();
+ const [amount,setAmount]=useState('0.500');
+ const rawAmount=Number(amount)*1000;
+ const amountFils=Math.round(rawAmount);
+ const validAmount=Number.isFinite(rawAmount)&&Math.abs(rawAmount-amountFils)<0.0001&&amountFils>=250&&amountFils<=1_000_000;
+ const send=()=>transfer.mutate({publicId,data:{amountFils}});
+
+ return <Shell demo publicPage><div className="mx-auto max-w-[540px]">
+  {recipient.isLoading?<div className="card-warm rounded-[30px] p-7"><div className="skeleton h-24"/><div className="skeleton mt-4 h-48"/></div>:recipient.isError?<div className="card-warm rounded-[30px] p-7 text-center"><QrCode className="mx-auto mb-3 text-[#EF805F]" size={28}/><h1 className="font-[Manrope] text-xl font-extrabold">This child QR is not available</h1><p className="mt-2 text-sm text-[#765b4e]">Ask the family to share a current QR code.</p><Link href="/" className="btn-primary mt-5 inline-flex">Return to SANAD</Link></div>:recipient.data&&<div className="card-warm overflow-hidden rounded-[30px] p-5 sm:p-7">
+   <div className="flex items-center justify-between"><Brand compact/><span className="rounded-full bg-[#f7e9dc] px-3 py-1.5 text-[10px] font-bold text-[#82583f]"><ShieldAlert size={12} className="mr-1 inline"/>DEMO ONLY</span></div>
+   {transfer.data?<div className="mt-6 rounded-[24px] bg-white p-6 text-center shadow-sm sm:p-8"><CheckCircle2 className="mx-auto text-[#53764b]" size={44}/><p className="mt-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#ad6955]">Simulated · no money moved</p><h1 className="mt-2 font-[Manrope] text-2xl font-extrabold">Transfer recorded</h1><p className="mt-2 text-sm text-[#765b4e]">Your demo transfer was added to {transfer.data.firstName}’s SANAD wallet.</p><p className="mt-5 font-[Manrope] text-4xl font-extrabold text-[#581C2B]">{KWD(transfer.data.amountFils)}</p><p className="mt-2 text-xs text-[#80695b]">{shortDate(transfer.data.createdAt)}</p><button className="btn-primary mt-6 w-full" onClick={()=>{transfer.reset();setAmount('0.500')}}>Send another demo transfer</button></div>:<>
+    <div className="mt-5 rounded-[22px] bg-white p-4 shadow-sm"><p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#b66e59]">Recipient</p><h1 className="mt-1 font-[Manrope] text-2xl font-extrabold text-[#3B1720]">{recipient.data.firstName}</h1><p className="mt-1 text-xs text-[#80695b]">SANAD child wallet</p></div>
+    <div className="my-4 rounded-xl bg-[#fff0df] p-3 text-xs leading-5 text-[#76543d]"><b>No SANAD account needed.</b> Choose an amount to record a direct demo transfer. This does not process a payment or move money.</div>
+    <h2 className="font-[Manrope] text-lg font-extrabold">Choose an amount</h2>
+    <div className="mt-3 grid grid-cols-3 gap-2">{[250,500,1000].map(fils=>{const value=(fils/1000).toFixed(3);return <button key={fils} type="button" onClick={()=>setAmount(value)} className={`rounded-2xl border px-2 py-3 transition ${amount===value?'border-[#EF805F] bg-[#fff0e7] text-[#581C2B] ring-1 ring-[#EF805F]':'border-[#eadbcc] bg-white'}`}><b className="block text-lg">{value}</b><span className="text-[10px] text-[#80695b]">KWD</span></button>})}</div>
+    <Field label="Custom amount in KWD" type="number" min=".250" max="1000" step=".001" value={amount} onChange={e=>setAmount(e.target.value)}/>
+    {!validAmount&&<p className="mt-1 text-[10px] text-[#a34d3d]">Choose at least 0.250 KWD and no more than 1,000 KWD.</p>}
+    {transfer.isError&&<p className="mt-3 text-xs text-red-700">Could not record the demo transfer. Please try again.</p>}
+    <button className="btn-primary mt-4 flex w-full items-center justify-center gap-2 py-4 disabled:cursor-not-allowed disabled:opacity-50" disabled={transfer.isPending||!validAmount} onClick={send}>{transfer.isPending?'Recording demo transfer…':`Send demo transfer · ${validAmount?(amountFils/1000).toFixed(3):'0.000'} KWD`}<ArrowRight size={17}/></button>
+    <p className="mt-3 text-center text-[10px] leading-4 text-[#8b7566]">No account, sign-in, or payment method is required. This is a public demo page; only the child’s first name is shown.</p>
+   </>}
+  </div>}
+ </div></Shell>;
+}
+
 function IndividualPage() {
  const qc=useQueryClient(); const transfers=useListDemoTransfers({query:{queryKey:getListDemoTransfersQueryKey()}});
  const create=useCreateDemoTransfer({mutation:{onSuccess:()=>qc.invalidateQueries({queryKey:getListDemoTransfersQueryKey()})}});
@@ -251,7 +295,7 @@ function AppRouter() {
  return <ErrorBoundary resetKey={location}><Switch>
   <Route path="/" component={Home}/><Route path="/tip/:publicId" component={TipPage}/><Route path="/receipt/:reference" component={ReceiptPage}/>
   <Route path="/worker" component={WorkerPage}/><Route path="/company" component={CompanyPage}/><Route path="/parent" component={FamilyPage}/>
-  <Route path="/child/:id" component={ChildPage}/><Route path="/individual" component={IndividualPage}/><Route path="/admin" component={AdminPage}/>
+   <Route path="/child/:id" component={ChildPage}/><Route path="/give/:publicId" component={ChildTransferPage}/><Route path="/individual" component={IndividualPage}/><Route path="/admin" component={AdminPage}/>
   <Route component={NotFound}/>
  </Switch></ErrorBoundary>;
 }

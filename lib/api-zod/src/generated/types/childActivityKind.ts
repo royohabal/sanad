@@ -14,4 +14,5 @@ export const ChildActivityKind = {
   eidiyah: 'eidiyah',
   goal: 'goal',
   purchase: 'purchase',
+  transfer: 'transfer',
 } as const;

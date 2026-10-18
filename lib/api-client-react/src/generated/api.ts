@@ -37,6 +37,9 @@ import type {
   GoalContributionInput,
   HealthStatus,
   ListTipsParams,
+  PublicChildRecipient,
+  PublicChildTransferInput,
+  PublicChildTransferReceipt,
   PublicWorker,
   SavingsGoal,
   SavingsGoalInput,
@@ -1353,6 +1356,172 @@ export const useCreateChild = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateChildMutationOptions(options));
+    }
+
+export const getGetPublicChildRecipientUrl = (publicId: string,) => {
+
+
+
+
+  return `/api/child-recipients/${publicId}`
+}
+
+/**
+ * @summary Look up a child by their public QR identifier
+ */
+export const getPublicChildRecipient = async (publicId: string, options?: Parameters<typeof customFetch>[1]): Promise<PublicChildRecipient> => {
+
+  return customFetch<PublicChildRecipient>(getGetPublicChildRecipientUrl(publicId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicChildRecipientQueryKey = (publicId: string,) => {
+    return [
+    `/api/child-recipients/${publicId}`
+    ] as const;
+    }
+
+
+export const getGetPublicChildRecipientQueryOptions = <TData = Awaited<ReturnType<typeof getPublicChildRecipient>>, TError = ErrorType<void>>(publicId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicChildRecipient>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicChildRecipientQueryKey(publicId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicChildRecipient>>> = ({ signal }) => getPublicChildRecipient(publicId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: publicId !== null && publicId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicChildRecipient>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicChildRecipientQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicChildRecipient>>>
+export type GetPublicChildRecipientQueryError = ErrorType<void>
+
+
+/**
+ * @summary Look up a child by their public QR identifier
+ */
+
+export function useGetPublicChildRecipient<TData = Awaited<ReturnType<typeof getPublicChildRecipient>>, TError = ErrorType<void>>(
+ publicId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicChildRecipient>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicChildRecipientQueryOptions(publicId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePublicChildTransferUrl = (publicId: string,) => {
+
+
+
+
+  return `/api/child-recipients/${publicId}/transfers`
+}
+
+/**
+ * @summary Record a simulated no-login transfer to a child
+ */
+export const createPublicChildTransfer = async (publicId: string,
+    publicChildTransferInput: PublicChildTransferInput, options?: Parameters<typeof customFetch>[1]): Promise<PublicChildTransferReceipt> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PublicChildTransferReceipt>(getCreatePublicChildTransferUrl(publicId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(publicChildTransferInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePublicChildTransferMutationKey = () => ['createPublicChildTransfer'] as const;
+
+export const getCreatePublicChildTransferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPublicChildTransfer>>, TError,CreatePublicChildTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPublicChildTransfer>>, TError,CreatePublicChildTransferMutationVariables, TContext> => {
+
+const mutationKey = getCreatePublicChildTransferMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPublicChildTransfer>>, CreatePublicChildTransferMutationVariables> = (props) => {
+          const {publicId,data} = props ?? {};
+
+          return  createPublicChildTransfer(publicId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePublicChildTransferMutationResult = NonNullable<Awaited<ReturnType<typeof createPublicChildTransfer>>>
+    export type CreatePublicChildTransferMutationBody = BodyType<PublicChildTransferInput>
+    export type CreatePublicChildTransferMutationError = ErrorType<void>
+    export type CreatePublicChildTransferMutationVariables = {publicId: string;data: BodyType<PublicChildTransferInput>}
+
+    /**
+ * @summary Record a simulated no-login transfer to a child
+ */
+export const useCreatePublicChildTransfer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPublicChildTransfer>>, TError,CreatePublicChildTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPublicChildTransfer>>,
+        TError,
+        CreatePublicChildTransferMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreatePublicChildTransferMutationOptions(options));
     }
 
 export const getUpdateChildUrl = (id: number,) => {

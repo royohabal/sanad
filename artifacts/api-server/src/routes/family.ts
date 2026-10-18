@@ -16,6 +16,9 @@ import {
   CreateApprovalRequestResponse,
   CreateChildBody,
   CreateChildResponse,
+  CreatePublicChildTransferBody,
+  CreatePublicChildTransferParams,
+  CreatePublicChildTransferResponse,
   CreateSavingsGoalBody,
   CreateSavingsGoalParams,
   CreateSavingsGoalResponse,
@@ -24,6 +27,8 @@ import {
   ContributeToSavingsGoalResponse,
   GetChildDashboardParams,
   GetChildDashboardResponse,
+  GetPublicChildRecipientParams,
+  GetPublicChildRecipientResponse,
   ListChildrenResponse,
   UpdateApprovalRequestBody,
   UpdateApprovalRequestParams,
@@ -67,6 +72,95 @@ async function getChildBalance(childId: number) {
     .where(eq(sanadChildActivityTable.childId, childId));
   return activity.reduce((total, item) => total + item.amountFils, 0);
 }
+
+function childFirstName(name: string) {
+  return name.trim().split(/\s+/)[0] || "Child";
+}
+
+router.get("/child-recipients/:publicId", async (req, res): Promise<void> => {
+  const params = GetPublicChildRecipientParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(404).json({ error: "Child not found" });
+    return;
+  }
+
+  const [child] = await db
+    .select({
+      publicId: sanadChildrenTable.publicId,
+      name: sanadChildrenTable.name,
+    })
+    .from(sanadChildrenTable)
+    .where(eq(sanadChildrenTable.publicId, params.data.publicId))
+    .limit(1);
+  if (!child) {
+    res.status(404).json({ error: "Child not found" });
+    return;
+  }
+
+  res.json(
+    GetPublicChildRecipientResponse.parse({
+      publicId: child.publicId,
+      firstName: childFirstName(child.name),
+    }),
+  );
+});
+
+router.post(
+  "/child-recipients/:publicId/transfers",
+  async (req, res): Promise<void> => {
+    const params = CreatePublicChildTransferParams.safeParse(req.params);
+    const body = CreatePublicChildTransferBody.safeParse(req.body);
+    if (!params.success) {
+      res.status(404).json({ error: "Child not found" });
+      return;
+    }
+    if (!body.success) {
+      res.status(400).json({ error: body.error.message });
+      return;
+    }
+
+    const outcome = await db.transaction(async (tx) => {
+      const [child] = await tx
+        .select({
+          id: sanadChildrenTable.id,
+          name: sanadChildrenTable.name,
+        })
+        .from(sanadChildrenTable)
+        .where(eq(sanadChildrenTable.publicId, params.data.publicId))
+        .for("update")
+        .limit(1);
+      if (!child) return null;
+
+      const [activity] = await tx
+        .insert(sanadChildActivityTable)
+        .values({
+          childId: child.id,
+          title: "Direct QR transfer received",
+          amountFils: body.data.amountFils,
+          kind: "transfer",
+        })
+        .returning();
+      return {
+        firstName: childFirstName(child.name),
+        amountFils: activity.amountFils,
+        createdAt: activity.createdAt.toISOString(),
+      };
+    });
+
+    if (!outcome) {
+      res.status(404).json({ error: "Child not found" });
+      return;
+    }
+    res
+      .status(201)
+      .json(
+        CreatePublicChildTransferResponse.parse({
+          ...outcome,
+          demoOnly: true,
+        }),
+      );
+  },
+);
 
 router.get("/children", async (_req, res): Promise<void> => {
   const children = await db

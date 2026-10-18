@@ -182,6 +182,7 @@ export interface AdminOverview {
 
 export interface Child {
   id: number;
+  publicId: string;
   name: string;
   age: number;
   spendingLimitFils: number;
@@ -217,6 +218,7 @@ export const ChildActivityKind = {
   eidiyah: 'eidiyah',
   goal: 'goal',
   purchase: 'purchase',
+  transfer: 'transfer',
 } as const;
 
 export interface ChildActivity {
@@ -261,6 +263,26 @@ export interface ChildDashboard {
   activity: ChildActivity[];
   goals: SavingsGoal[];
   approvals: ApprovalRequest[];
+}
+
+export interface PublicChildRecipient {
+  publicId: string;
+  firstName: string;
+}
+
+export interface PublicChildTransferInput {
+  /**
+     * @minimum 250
+     * @maximum 1000000
+     */
+  amountFils: number;
+}
+
+export interface PublicChildTransferReceipt {
+  firstName: string;
+  amountFils: number;
+  createdAt: string;
+  demoOnly: true;
 }
 
 export type AllowanceInputKind = typeof AllowanceInputKind[keyof typeof AllowanceInputKind];

@@ -8,6 +8,7 @@
 
 export interface Child {
   id: number;
+  publicId: string;
   name: string;
   age: number;
   spendingLimitFils: number;

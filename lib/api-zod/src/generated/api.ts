@@ -323,6 +323,7 @@ export const GetAdminOverviewResponse = zod.object({
  */
 export const ListChildrenResponseItem = zod.object({
   "id": zod.number().int(),
+  "publicId": zod.string().uuid(),
   "name": zod.string(),
   "age": zod.number().int(),
   "spendingLimitFils": zod.number().int(),
@@ -353,11 +354,49 @@ export const CreateChildBody = zod.object({
 
 export const CreateChildResponse = zod.object({
   "id": zod.number().int(),
+  "publicId": zod.string().uuid(),
   "name": zod.string(),
   "age": zod.number().int(),
   "spendingLimitFils": zod.number().int(),
   "balanceFils": zod.number().int(),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Look up a child by their public QR identifier
+ */
+export const GetPublicChildRecipientParams = zod.object({
+  "publicId": zod.coerce.string().uuid()
+})
+
+export const GetPublicChildRecipientResponse = zod.object({
+  "publicId": zod.string().uuid(),
+  "firstName": zod.string()
+})
+
+
+/**
+ * @summary Record a simulated no-login transfer to a child
+ */
+export const CreatePublicChildTransferParams = zod.object({
+  "publicId": zod.coerce.string().uuid()
+})
+
+export const createPublicChildTransferBodyAmountFilsMin = 250;
+export const createPublicChildTransferBodyAmountFilsMax = 1000000;
+
+
+
+export const CreatePublicChildTransferBody = zod.object({
+  "amountFils": zod.number().int().min(createPublicChildTransferBodyAmountFilsMin).max(createPublicChildTransferBodyAmountFilsMax)
+})
+
+export const CreatePublicChildTransferResponse = zod.object({
+  "firstName": zod.string(),
+  "amountFils": zod.number().int(),
+  "createdAt": zod.coerce.date(),
+  "demoOnly": zod.literal(true)
 })
 
 
@@ -378,6 +417,7 @@ export const UpdateChildBody = zod.object({
 
 export const UpdateChildResponse = zod.object({
   "id": zod.number().int(),
+  "publicId": zod.string().uuid(),
   "name": zod.string(),
   "age": zod.number().int(),
   "spendingLimitFils": zod.number().int(),
@@ -396,6 +436,7 @@ export const GetChildDashboardParams = zod.object({
 export const GetChildDashboardResponse = zod.object({
   "child": zod.object({
   "id": zod.number().int(),
+  "publicId": zod.string().uuid(),
   "name": zod.string(),
   "age": zod.number().int(),
   "spendingLimitFils": zod.number().int(),
@@ -407,7 +448,7 @@ export const GetChildDashboardResponse = zod.object({
   "childId": zod.number().int(),
   "title": zod.string(),
   "amountFils": zod.number().int(),
-  "kind": zod.enum(['allowance', 'eidiyah', 'goal', 'purchase']),
+  "kind": zod.enum(['allowance', 'eidiyah', 'goal', 'purchase', 'transfer']),
   "createdAt": zod.coerce.date()
 })),
   "goals": zod.array(zod.object({
@@ -450,7 +491,7 @@ export const CreateAllowanceResponse = zod.object({
   "childId": zod.number().int(),
   "title": zod.string(),
   "amountFils": zod.number().int(),
-  "kind": zod.enum(['allowance', 'eidiyah', 'goal', 'purchase']),
+  "kind": zod.enum(['allowance', 'eidiyah', 'goal', 'purchase', 'transfer']),
   "createdAt": zod.coerce.date()
 })
 
