@@ -60,6 +60,12 @@ function publicWorkerDto(worker: typeof sanadWorkersTable.$inferSelect) {
   };
 }
 
+function isPublicId(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
 function tipDto(
   tip: typeof sanadTipsTable.$inferSelect,
   worker: typeof sanadWorkersTable.$inferSelect,
@@ -104,6 +110,10 @@ router.get("/workers/:publicId", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!isPublicId(params.data.publicId)) {
+    res.status(404).json({ error: "Worker not found" });
+    return;
+  }
 
   const [worker] = await db
     .select()
@@ -123,6 +133,10 @@ router.delete("/workers/:publicId", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
+  if (!isPublicId(params.data.publicId)) {
+    res.status(404).json({ error: "Worker not found" });
+    return;
+  }
 
   const [worker] = await db
     .delete(sanadWorkersTable)
@@ -139,6 +153,10 @@ router.get("/workers/:publicId/dashboard", async (req, res): Promise<void> => {
   const params = GetWorkerDashboardParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
+    return;
+  }
+  if (!isPublicId(params.data.publicId)) {
+    res.status(404).json({ error: "Worker not found" });
     return;
   }
 
@@ -209,6 +227,10 @@ router.post("/tips", async (req, res): Promise<void> => {
   const parsed = CreateDemoTipBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  if (!isPublicId(parsed.data.publicId)) {
+    res.status(404).json({ error: "Worker not found" });
     return;
   }
 

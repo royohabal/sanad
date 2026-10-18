@@ -31,3 +31,15 @@
 .btn-primary:hover { transform:translateY(-1px); } .btn-coral { background:#EF805F; color:#3B1720; border-radius:999px; padding:12px 20px; font-weight:700; }
 .demo-banner { background:#fff0df; border:1px solid #f0d6b8; color:#754832; }
 .skeleton { background:linear-gradient(90deg,#f1e4d5 25%,#fbf2e8 50%,#f1e4d5 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:12px; } @keyframes shimmer { to { background-position:-200% 0 } }
+.print-badge { display:none; }
+@media print {
+  @page { size: 100mm 68mm; margin: 0; }
+  html, body { width:100%; height:100%; background:#fff!important; }
+  body * { visibility:hidden!important; }
+  .print-badge, .print-badge * { visibility:visible!important; }
+  .print-badge { display:flex!important; position:fixed!important; inset:0!important; box-sizing:border-box; width:100mm; height:68mm; align-items:center; justify-content:space-between; gap:6mm; padding:7mm; background:#fffaf4!important; color:#3B1720!important; font-family:Arial,sans-serif; }
+  .print-badge b { display:block; color:#581C2B; font-size:17pt; letter-spacing:.08em; }
+  .print-badge p { margin:7mm 0 2mm; font-size:15pt; font-weight:700; }
+  .print-badge small { display:block; margin-top:2mm; font-size:8pt; }
+  .print-badge svg { width:42mm; height:42mm; flex:none; }
+}
