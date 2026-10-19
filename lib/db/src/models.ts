@@ -39,12 +39,34 @@ export interface ApprovalRequestRecord {
 export interface WorkerRecord {
   id: number;
   publicId: string;
+  ownerUserId?: string;
+  companyId?: number;
+  requestedCompanyId?: number;
+  companyStatus?: "none" | "pending" | "approved" | "rejected";
   name: string;
   avatarUrl: string | null;
   workplace: string;
   jobTitle: string;
   company: string;
   createdAt: Date;
+}
+
+export interface CompanyRecord {
+  id: number;
+  ownerUserId: string;
+  name: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WorkerCompanyRequestRecord {
+  id: number;
+  workerId: number;
+  companyId: number;
+  status: "pending" | "approved" | "rejected";
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface TipRecord {
@@ -54,6 +76,8 @@ export interface TipRecord {
   amountFils: number;
   rating: number | null;
   message: string | null;
+  customerName?: string;
+  idempotencyKey?: string;
   status: string;
   createdAt: Date;
 }

@@ -72,6 +72,258 @@ paths:
           description: Initial admin role was already claimed
         "503":
           description: Initial admin email is not configured or identity verification failed
+  /workers/me/profile:
+    get:
+      operationId: getMyWorkerProfile
+      tags: [sanad]
+      summary: Get the signed-in user's worker profile and company request state
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Owned worker profile, if registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkerProfileState"
+        "401":
+          description: Sign-in required
+    post:
+      operationId: createMyWorkerProfile
+      tags: [sanad]
+      summary: Register the signed-in user as a worker
+      security:
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkerProfileInput"
+      responses:
+        "201":
+          description: Worker account profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkerProfileState"
+        "400":
+          description: Invalid profile details
+        "401":
+          description: Sign-in required
+        "409":
+          description: Worker profile already exists
+  /workers/me/dashboard:
+    get:
+      operationId: getMyWorkerDashboard
+      tags: [sanad]
+      summary: Get the signed-in worker's private dashboard
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Owner-only tip and settlement overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkerDashboard"
+        "401":
+          description: Sign-in required
+        "404":
+          description: Worker profile not found
+  /workers/me/company-requests:
+    post:
+      operationId: createWorkerCompanyRequest
+      tags: [sanad]
+      summary: Request association with an approved company
+      security:
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkerCompanyRequestInput"
+      responses:
+        "201":
+          description: Company association request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkerCompanyRequest"
+        "400":
+          description: Invalid company
+        "401":
+          description: Sign-in required
+        "404":
+          description: Worker or company not found
+        "409":
+          description: Worker already has a company request or association
+  /companies/approved:
+    get:
+      operationId: listApprovedCompanies
+      tags: [sanad]
+      summary: List approved companies available for worker association
+      responses:
+        "200":
+          description: Public company names only
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompanyOption"
+  /companies/me/profile:
+    get:
+      operationId: getMyCompanyProfile
+      tags: [sanad]
+      summary: Get the signed-in user's company account
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Owned company profile, if registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyProfileState"
+        "401":
+          description: Sign-in required
+    post:
+      operationId: createMyCompanyProfile
+      tags: [sanad]
+      summary: Register a company account pending SANAD review
+      security:
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyProfileInput"
+      responses:
+        "201":
+          description: Company account created with pending status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyProfile"
+        "400":
+          description: Invalid company details
+        "401":
+          description: Sign-in required
+        "409":
+          description: This account already owns a company profile
+  /companies/me/dashboard:
+    get:
+      operationId: getMyCompanyDashboard
+      tags: [sanad]
+      summary: Get the signed-in company's authorized worker summaries and reports
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Company-scoped dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyDashboard"
+        "401":
+          description: Sign-in required
+        "404":
+          description: Company profile not found
+  /companies/me/worker-requests/{id}:
+    patch:
+      operationId: reviewWorkerCompanyRequest
+      tags: [sanad]
+      summary: Approve or reject a worker's association request
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyWorkerRequestUpdate"
+      responses:
+        "200":
+          description: Association request reviewed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyWorkerRequest"
+        "400":
+          description: Invalid request
+        "401":
+          description: Sign-in required
+        "403":
+          description: Company has not been approved
+        "404":
+          description: Request not found for this company
+        "409":
+          description: Request is no longer pending
+  /admin/companies:
+    get:
+      operationId: listPendingCompanies
+      tags: [sanad]
+      summary: List companies awaiting administrator review
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Pending company applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompanyProfile"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin access required
+  /admin/companies/{id}:
+    patch:
+      operationId: reviewCompany
+      tags: [sanad]
+      summary: Approve or reject a pending company account
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyStatusUpdate"
+      responses:
+        "200":
+          description: Company review updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyProfile"
+        "400":
+          description: Invalid status
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin access required
+        "404":
+          description: Company not found
+        "409":
+          description: Company is no longer pending
   /workers:
     get:
       operationId: listWorkers
@@ -154,7 +406,9 @@ paths:
     get:
       operationId: getWorkerDashboard
       tags: [sanad]
-      summary: Get worker tip and settlement overview
+      summary: Get owner-only worker tip and settlement overview
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: publicId
@@ -170,15 +424,18 @@ paths:
                 $ref: "#/components/schemas/WorkerDashboard"
         "404":
           description: Worker not found
+        "401":
+          description: Sign-in required
+        "403":
+          description: Worker ownership required
   /tips:
     get:
       operationId: listTips
       tags: [sanad]
-      summary: List simulated tips
-      description: A publicId filter returns that worker's simulated tip activity; the unfiltered platform-wide list is admin-only.
+      summary: List simulated tips for administrator review
+      description: Tip history is private to workers and administrators. Workers use their owner-only dashboard.
       security:
         - ClerkSession: []
-        - {}
       parameters:
         - in: query
           name: publicId
@@ -237,7 +494,9 @@ paths:
     get:
       operationId: getCompanySummary
       tags: [sanad]
-      summary: Get worker totals for the company demo
+      summary: Get platform worker totals for administrators
+      security:
+        - ClerkSession: []
       responses:
         "200":
           description: Company summary
@@ -793,13 +1052,96 @@ components:
         workplace: { type: string, minLength: 2, maxLength: 120 }
         jobTitle: { type: string, minLength: 2, maxLength: 80 }
         company: { type: string, minLength: 2, maxLength: 120 }
+    WorkerProfileInput:
+      type: object
+      required: [name, workplace, jobTitle]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        workplace: { type: string, minLength: 2, maxLength: 120 }
+        jobTitle: { type: string, minLength: 2, maxLength: 80 }
+    WorkerProfileState:
+      type: object
+      required: [worker, companyStatus, companyRequest]
+      properties:
+        worker:
+          oneOf:
+            - $ref: "#/components/schemas/Worker"
+            - type: "null"
+        companyStatus:
+          type: string
+          enum: [none, pending, approved, rejected]
+        companyRequest:
+          oneOf:
+            - $ref: "#/components/schemas/WorkerCompanyRequest"
+            - type: "null"
+    CompanyProfile:
+      type: object
+      required: [id, name, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CompanyProfileState:
+      type: object
+      required: [company]
+      properties:
+        company:
+          oneOf:
+            - $ref: "#/components/schemas/CompanyProfile"
+            - type: "null"
+    CompanyProfileInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 120 }
+    CompanyOption:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    WorkerCompanyRequestInput:
+      type: object
+      required: [companyId]
+      properties:
+        companyId: { type: integer, minimum: 1 }
+    WorkerCompanyRequest:
+      type: object
+      required: [id, companyId, companyName, status, createdAt]
+      properties:
+        id: { type: integer }
+        companyId: { type: integer }
+        companyName: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+    CompanyWorkerRequest:
+      type: object
+      required: [id, worker, status, createdAt]
+      properties:
+        id: { type: integer }
+        worker: { $ref: "#/components/schemas/PublicWorker" }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+    CompanyWorkerRequestUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [approved, rejected] }
+    CompanyStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [approved, rejected] }
     Tip:
       type: object
-      required: [reference, publicId, workerName, amountFils, status, createdAt]
+      required: [reference, publicId, workerName, customerName, amountFils, status, createdAt]
       properties:
         reference: { type: string }
         publicId: { type: string }
         workerName: { type: string }
+        customerName: { type: string }
         amountFils: { type: integer }
         rating: { type: ["integer", "null"] }
         message: { type: ["string", "null"] }
@@ -807,10 +1149,12 @@ components:
         createdAt: { type: string, format: date-time }
     DemoTipInput:
       type: object
-      required: [publicId, amountFils]
+      required: [publicId, amountFils, idempotencyKey]
       properties:
         publicId: { type: string }
         amountFils: { type: integer, enum: [250, 500, 1000] }
+        idempotencyKey: { type: string, format: uuid }
+        customerName: { type: ["string", "null"], maxLength: 80 }
         rating: { type: ["integer", "null"], minimum: 1, maximum: 5 }
         message: { type: ["string", "null"], maxLength: 240 }
     WorkerDashboard:

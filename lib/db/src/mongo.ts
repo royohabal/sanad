@@ -12,6 +12,8 @@ export type SequenceName =
   | "sanad_workers"
   | "sanad_tips"
   | "sanad_settlements"
+  | "sanad_companies"
+  | "sanad_worker_company_requests"
   | "sanad_cash_out_requests"
   | "sanad_demo_transfers";
 export type MongoSession = ClientSession;
@@ -43,8 +45,17 @@ async function ensureIndexes(db: Db) {
     db.collection("sanad_approval_requests").createIndex({ childId: 1, createdAt: -1 }),
     db.collection("sanad_workers").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_workers").createIndex({ publicId: 1 }, { unique: true }),
+    db.collection("sanad_workers").createIndex(
+      { ownerUserId: 1 },
+      { unique: true, sparse: true },
+    ),
+    db.collection("sanad_workers").createIndex({ companyId: 1 }),
     db.collection("sanad_tips").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_tips").createIndex({ reference: 1 }, { unique: true }),
+    db.collection("sanad_tips").createIndex(
+      { idempotencyKey: 1 },
+      { unique: true, sparse: true },
+    ),
     db.collection("sanad_tips").createIndex({ workerId: 1, createdAt: -1 }),
     db.collection("sanad_settlements").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_settlements").createIndex(
@@ -60,6 +71,25 @@ async function ensureIndexes(db: Db) {
     db.collection("sanad_user_roles").createIndex(
       { userId: 1 },
       { unique: true },
+    ),
+    db.collection("sanad_companies").createIndex({ id: 1 }, { unique: true }),
+    db.collection("sanad_companies").createIndex(
+      { ownerUserId: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_companies").createIndex({ status: 1, createdAt: -1 }),
+    db.collection("sanad_worker_company_requests").createIndex(
+      { id: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_worker_company_requests").createIndex({
+      companyId: 1,
+      status: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_worker_company_requests").createIndex(
+      { workerId: 1 },
+      { unique: true, partialFilterExpression: { status: "pending" } },
     ),
     db.collection("sanad_cash_out_requests").createIndex(
       { id: 1 },

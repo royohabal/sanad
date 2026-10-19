@@ -1,0 +1,80 @@
+I need you to change how SANAD works. My current Worker page is not the experience I want. It displays a pre-made “Demo worker,” has a dropdown to switch between workers, and shows sample tipping activity. I want a proper account-based platform.
+
+**IMPORTANT: Inspect my existing code, authentication, database, and routes before making changes. Preserve my existing design, burgundy/coral/cream palette, Arabic and English support, and working features. Do not rebuild the project from scratch or remove features without a reason.**
+
+## 1. Worker registration and login
+
+Create a real worker account flow:
+- A new worker can sign up and sign in securely.
+- Collect their name, email, password through a secure authentication system, job title, and workplace.
+- If a company manages the worker, include a way to connect the worker to that company.
+- If company verification or approval is required, show a clear pending status.
+- Each worker must have their own authenticated account and profile.
+- Inspect and reuse any authentication system already installed. Do not create a second conflicting authentication system.
+- Do not let users select another worker's profile from a dropdown.
+
+## 2. Personal worker dashboard
+
+After signing in, a worker should see their own information only:
+- Their name, job title, and workplace.
+- Their own unique QR code and public tipping link.
+- A button to download or print their QR badge.
+- Total tips received for the selected period.
+- Individual tip records with amount, date, and optional customer message or rating.
+- Monthly tip totals and settlement status.
+
+Remove the demo-worker selector from the normal worker experience. Never show one worker another worker's private dashboard or tip history.
+
+## 3. Customer tipping flow
+
+A customer scans the worker's unique QR code and opens a public tipping page.
+
+The customer must not need to create a SANAD account. They should be able to:
+- See the correct worker's name and workplace.
+- Select a tip amount.
+- Optionally enter their name, a message, or a rating.
+- Submit the tip flow and see an appropriate confirmation.
+
+If the customer doesn't provide a name, display them as “Anonymous” to the worker. Do not invent customer identities or claim that a customer is verified when they are not.
+
+For this prototype, tips are simulated. Clearly label them as simulated and never claim real money was transferred.
+
+## 4. Company accounts
+
+Companies should have their own secure accounts and dashboards.
+
+Authorized company users should be able to:
+- Register or manage workers associated with their company.
+- View appropriate worker tip totals and monthly reports.
+- Review settlement previews and statuses.
+
+A company must not access workers belonging to unrelated companies. Workers must not be able to change their company association or settlement records without authorization.
+
+## 5. Database and permissions
+
+Use my existing MongoDB Atlas setup if configured. Check whether the current app really persists data before changing the database implementation.
+
+Store worker profiles, account associations, unique QR identifiers, tip records, optional customer feedback, and settlement records in the database.
+
+Enforce authentication and authorization on the server, not only by hiding buttons in the frontend. Validate all inputs, protect secrets, and ensure each worker can only access their own private information.
+
+Prevent duplicate tip submissions where practical. Do not allow users to change tip amounts or settlement statuses by editing client-side requests.
+
+## 6. Preserve and test the existing project
+
+Keep the existing public tip route working, but make it resolve the correct worker from their unique QR identifier.
+
+Keep Parent, Child, Individual, and Admin pages available unless a change is necessary; do not accidentally break their routes.
+
+Test:
+1. A new worker signs up and signs in.
+2. The worker sees their own profile and unique QR code.
+3. A customer opens that QR link without signing in and submits a simulated tip.
+4. The tip is saved in MongoDB and appears on the correct worker's dashboard.
+5. Another worker cannot see the first worker's private records.
+6. A company can only manage workers it is authorized to manage.
+7. The app still works after refreshing the page.
+
+Before finishing, tell me which features are genuinely working, which are simulated, whether MongoDB persistence was verified, and whether I need to configure any environment variables or authentication settings.
+
+Prioritize a reliable worker account and QR tipping flow over adding new features.
