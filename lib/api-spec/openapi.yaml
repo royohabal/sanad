@@ -462,6 +462,12 @@ paths:
             schema:
               $ref: "#/components/schemas/DemoTipInput"
       responses:
+        "200":
+          description: Existing record returned for a safely retried submission
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tip"
         "201":
           description: Demo tip receipt
           content:
@@ -1188,6 +1194,30 @@ components:
         workers:
           type: array
           items: { $ref: "#/components/schemas/CompanyWorkerSummary" }
+        monthFils: { type: integer }
+        totalTips: { type: integer }
+    CompanyMemberSummary:
+      type: object
+      required: [worker, monthFils, totalTips, averageRating, settlements]
+      properties:
+        worker: { $ref: "#/components/schemas/PublicWorker" }
+        monthFils: { type: integer }
+        totalTips: { type: integer }
+        averageRating: { type: ["number", "null"] }
+        settlements:
+          type: array
+          items: { $ref: "#/components/schemas/Settlement" }
+    CompanyDashboard:
+      type: object
+      required: [company, workers, requests, monthFils, totalTips]
+      properties:
+        company: { $ref: "#/components/schemas/CompanyProfile" }
+        workers:
+          type: array
+          items: { $ref: "#/components/schemas/CompanyMemberSummary" }
+        requests:
+          type: array
+          items: { $ref: "#/components/schemas/CompanyWorkerRequest" }
         monthFils: { type: integer }
         totalTips: { type: integer }
     Settlement:

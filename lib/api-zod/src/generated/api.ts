@@ -36,6 +36,291 @@ export const BootstrapFirstAdminResponse = zod.object({
 
 
 /**
+ * @summary Get the signed-in user's worker profile and company request state
+ */
+export const GetMyWorkerProfileResponse = zod.object({
+  "worker": zod.union([zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "companyStatus": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "companyRequest": zod.union([zod.object({
+  "id": zod.number().int(),
+  "companyId": zod.number().int(),
+  "companyName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Register the signed-in user as a worker
+ */
+export const createMyWorkerProfileBodyNameMin = 2;
+export const createMyWorkerProfileBodyNameMax = 100;
+
+export const createMyWorkerProfileBodyWorkplaceMin = 2;
+export const createMyWorkerProfileBodyWorkplaceMax = 120;
+
+export const createMyWorkerProfileBodyJobTitleMin = 2;
+export const createMyWorkerProfileBodyJobTitleMax = 80;
+
+
+
+export const CreateMyWorkerProfileBody = zod.object({
+  "name": zod.string().min(createMyWorkerProfileBodyNameMin).max(createMyWorkerProfileBodyNameMax),
+  "workplace": zod.string().min(createMyWorkerProfileBodyWorkplaceMin).max(createMyWorkerProfileBodyWorkplaceMax),
+  "jobTitle": zod.string().min(createMyWorkerProfileBodyJobTitleMin).max(createMyWorkerProfileBodyJobTitleMax)
+})
+
+export const CreateMyWorkerProfileResponse = zod.object({
+  "worker": zod.union([zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "companyStatus": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "companyRequest": zod.union([zod.object({
+  "id": zod.number().int(),
+  "companyId": zod.number().int(),
+  "companyName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Get the signed-in worker's private dashboard
+ */
+export const GetMyWorkerDashboardResponse = zod.object({
+  "worker": zod.object({
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),
+  "monthlyFils": zod.number().int(),
+  "totalTips": zod.number().int(),
+  "averageRating": zod.number().nullable(),
+  "recentTips": zod.array(zod.object({
+  "reference": zod.string(),
+  "publicId": zod.string(),
+  "workerName": zod.string(),
+  "customerName": zod.string(),
+  "amountFils": zod.number().int(),
+  "rating": zod.number().int().nullish(),
+  "message": zod.string().nullish(),
+  "status": zod.enum(['demo_completed']),
+  "createdAt": zod.coerce.date()
+})),
+  "settlements": zod.array(zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "workerName": zod.string(),
+  "month": zod.string(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'processing', 'completed']),
+  "updatedAt": zod.coerce.date()
+})),
+  "settlementStatus": zod.enum(['pending', 'processing', 'completed']),
+  "qrUrl": zod.string()
+})
+
+
+/**
+ * @summary Request association with an approved company
+ */
+
+
+
+export const CreateWorkerCompanyRequestBody = zod.object({
+  "companyId": zod.number().int().min(1)
+})
+
+export const CreateWorkerCompanyRequestResponse = zod.object({
+  "id": zod.number().int(),
+  "companyId": zod.number().int(),
+  "companyName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List approved companies available for worker association
+ */
+export const ListApprovedCompaniesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string()
+})
+export const ListApprovedCompaniesResponse = zod.array(ListApprovedCompaniesResponseItem)
+
+
+/**
+ * @summary Get the signed-in user's company account
+ */
+export const GetMyCompanyProfileResponse = zod.object({
+  "company": zod.union([zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Register a company account pending SANAD review
+ */
+export const createMyCompanyProfileBodyNameMin = 2;
+export const createMyCompanyProfileBodyNameMax = 120;
+
+
+
+export const CreateMyCompanyProfileBody = zod.object({
+  "name": zod.string().min(createMyCompanyProfileBodyNameMin).max(createMyCompanyProfileBodyNameMax)
+})
+
+export const CreateMyCompanyProfileResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the signed-in company's authorized worker summaries and reports
+ */
+export const GetMyCompanyDashboardResponse = zod.object({
+  "company": zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "workers": zod.array(zod.object({
+  "worker": zod.object({
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),
+  "monthFils": zod.number().int(),
+  "totalTips": zod.number().int(),
+  "averageRating": zod.number().nullable(),
+  "settlements": zod.array(zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "workerName": zod.string(),
+  "month": zod.string(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'processing', 'completed']),
+  "updatedAt": zod.coerce.date()
+}))
+})),
+  "requests": zod.array(zod.object({
+  "id": zod.number().int(),
+  "worker": zod.object({
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date()
+})),
+  "monthFils": zod.number().int(),
+  "totalTips": zod.number().int()
+})
+
+
+/**
+ * @summary Approve or reject a worker's association request
+ */
+export const ReviewWorkerCompanyRequestParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ReviewWorkerCompanyRequestBody = zod.object({
+  "status": zod.enum(['approved', 'rejected'])
+})
+
+export const ReviewWorkerCompanyRequestResponse = zod.object({
+  "id": zod.number().int(),
+  "worker": zod.object({
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List companies awaiting administrator review
+ */
+export const ListPendingCompaniesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListPendingCompaniesResponse = zod.array(ListPendingCompaniesResponseItem)
+
+
+/**
+ * @summary Approve or reject a pending company account
+ */
+export const ReviewCompanyParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ReviewCompanyBody = zod.object({
+  "status": zod.enum(['approved', 'rejected'])
+})
+
+export const ReviewCompanyResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List workers
  */
 export const ListWorkersResponseItem = zod.object({
@@ -119,7 +404,7 @@ export const DeleteWorkerResponse = zod.void()
 
 
 /**
- * @summary Get worker tip and settlement overview
+ * @summary Get owner-only worker tip and settlement overview
  */
 export const GetWorkerDashboardParams = zod.object({
   "publicId": zod.coerce.string()
@@ -142,6 +427,7 @@ export const GetWorkerDashboardResponse = zod.object({
   "reference": zod.string(),
   "publicId": zod.string(),
   "workerName": zod.string(),
+  "customerName": zod.string(),
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
@@ -163,8 +449,8 @@ export const GetWorkerDashboardResponse = zod.object({
 
 
 /**
- * A publicId filter returns that worker's simulated tip activity; the unfiltered platform-wide list is admin-only.
- * @summary List simulated tips
+ * Tip history is private to workers and administrators. Workers use their owner-only dashboard.
+ * @summary List simulated tips for administrator review
  */
 export const ListTipsQueryParams = zod.object({
   "publicId": zod.coerce.string().optional()
@@ -174,6 +460,7 @@ export const ListTipsResponseItem = zod.object({
   "reference": zod.string(),
   "publicId": zod.string(),
   "workerName": zod.string(),
+  "customerName": zod.string(),
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
@@ -187,6 +474,8 @@ export const ListTipsResponse = zod.array(ListTipsResponseItem)
  * No money moves; this is a class-project demonstration only.
  * @summary Record an explicitly simulated tip
  */
+export const createDemoTipBodyCustomerNameMax = 80;
+
 export const createDemoTipBodyRatingMax = 5;
 
 export const createDemoTipBodyMessageMax = 240;
@@ -196,6 +485,8 @@ export const createDemoTipBodyMessageMax = 240;
 export const CreateDemoTipBody = zod.object({
   "publicId": zod.string(),
   "amountFils": zod.union([zod.literal(250),zod.literal(500),zod.literal(1000)]),
+  "idempotencyKey": zod.string().uuid(),
+  "customerName": zod.string().max(createDemoTipBodyCustomerNameMax).nullish(),
   "rating": zod.number().int().min(1).max(createDemoTipBodyRatingMax).nullish(),
   "message": zod.string().max(createDemoTipBodyMessageMax).nullish()
 })
@@ -204,6 +495,7 @@ export const CreateDemoTipResponse = zod.object({
   "reference": zod.string(),
   "publicId": zod.string(),
   "workerName": zod.string(),
+  "customerName": zod.string(),
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
@@ -223,6 +515,7 @@ export const GetTipReceiptResponse = zod.object({
   "reference": zod.string(),
   "publicId": zod.string(),
   "workerName": zod.string(),
+  "customerName": zod.string(),
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
@@ -232,7 +525,7 @@ export const GetTipReceiptResponse = zod.object({
 
 
 /**
- * @summary Get worker totals for the company demo
+ * @summary Get platform worker totals for administrators
  */
 export const GetCompanySummaryResponse = zod.object({
   "workers": zod.array(zod.object({
@@ -328,6 +621,7 @@ export const GetAdminOverviewResponse = zod.object({
   "reference": zod.string(),
   "publicId": zod.string(),
   "workerName": zod.string(),
+  "customerName": zod.string(),
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),

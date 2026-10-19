@@ -11,6 +11,7 @@ export interface Tip {
   reference: string;
   publicId: string;
   workerName: string;
+  customerName: string;
   amountFils: number;
   /** @nullable */
   rating?: number | null;

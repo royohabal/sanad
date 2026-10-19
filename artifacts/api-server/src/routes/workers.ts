@@ -1,21 +1,27 @@
 import { randomUUID } from "node:crypto";
-import { Router, type IRouter, type RequestHandler } from "express";
+import { Router, type IRouter } from "express";
 import {
   getMongoDb,
   nextId,
   withMongoTransaction,
+  type CompanyRecord,
   type SettlementRecord,
   type TipRecord,
+  type WorkerCompanyRequestRecord,
   type WorkerRecord,
 } from "@workspace/db";
 import {
   CreateDemoTipBody,
   CreateDemoTipResponse,
+  CreateMyWorkerProfileBody,
+  CreateMyWorkerProfileResponse,
   CreateWorkerBody,
   CreateWorkerResponse,
   DeleteWorkerParams,
   GetAdminOverviewResponse,
   GetCompanySummaryResponse,
+  GetMyWorkerDashboardResponse,
+  GetMyWorkerProfileResponse,
   GetTipReceiptParams,
   GetTipReceiptResponse,
   GetWorkerByPublicIdParams,
@@ -30,21 +36,24 @@ import {
   UpdateSettlementStatusParams,
   UpdateSettlementStatusResponse,
 } from "@workspace/api-zod";
-import { requireAdmin } from "../middleware/authz";
+import {
+  isAdminUser,
+  requireAdmin,
+  requireSignedIn,
+  signedInUserId,
+} from "../middleware/authz";
 
 const router: IRouter = Router();
 const workers = () => getMongoDb().collection<WorkerRecord>("sanad_workers");
 const tips = () => getMongoDb().collection<TipRecord>("sanad_tips");
 const settlements = () =>
   getMongoDb().collection<SettlementRecord>("sanad_settlements");
-
-const requireAdminForUnfilteredTips: RequestHandler = (req, res, next) => {
-  if (typeof req.query.publicId === "string" && req.query.publicId.length > 0) {
-    next();
-    return;
-  }
-  requireAdmin(req, res, next);
-};
+const companies = () =>
+  getMongoDb().collection<CompanyRecord>("sanad_companies");
+const workerCompanyRequests = () =>
+  getMongoDb().collection<WorkerCompanyRequestRecord>(
+    "sanad_worker_company_requests",
+  );
 
 function monthRange(date = new Date()) {
   const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -92,6 +101,7 @@ function tipDto(tip: TipRecord, worker: WorkerRecord) {
     reference: tip.reference,
     publicId: worker.publicId,
     workerName: worker.name,
+    customerName: tip.customerName?.trim() || "Anonymous",
     amountFils: tip.amountFils,
     rating: tip.rating,
     message: tip.message,
@@ -112,10 +122,150 @@ function settlementDto(settlement: SettlementRecord, worker: WorkerRecord) {
   };
 }
 
+async function workerDashboardData(worker: WorkerRecord) {
+  const workerTips = await tips()
+    .find({ workerId: worker.id })
+    .sort({ createdAt: -1 })
+    .toArray();
+  const { month, start, end } = monthRange();
+  const monthlyFils = workerTips
+    .filter((tip) => tip.createdAt >= start && tip.createdAt < end)
+    .reduce((total, tip) => total + tip.amountFils, 0);
+  const ratings = workerTips.flatMap((tip) =>
+    tip.rating == null ? [] : [tip.rating],
+  );
+  const settlementHistory = await settlements()
+    .find({ workerId: worker.id })
+    .sort({ month: -1, updatedAt: -1 })
+    .toArray();
+  const settlement = settlementHistory.find((item) => item.month === month);
+
+  return {
+    worker: publicWorkerDto(worker),
+    monthlyFils,
+    totalTips: workerTips.length,
+    averageRating:
+      ratings.length > 0
+        ? Math.round(
+            (ratings.reduce((total, rating) => total + rating, 0) /
+              ratings.length) *
+              10,
+          ) / 10
+        : null,
+    recentTips: workerTips.slice(0, 8).map((tip) => tipDto(tip, worker)),
+    settlements: settlementHistory.map((item) => settlementDto(item, worker)),
+    settlementStatus: settlement?.status ?? "pending",
+    qrUrl: `/tip/${worker.publicId}`,
+  };
+}
+
+async function workerProfileState(worker: WorkerRecord | null) {
+  const request = worker
+    ? await workerCompanyRequests()
+        .find({ workerId: worker.id })
+        .sort({ createdAt: -1 })
+        .limit(1)
+        .next()
+    : null;
+  const company = request
+    ? await companies().findOne({ id: request.companyId })
+    : null;
+  return {
+    worker: worker ? workerDto(worker) : null,
+    companyStatus: worker?.companyStatus ?? "none",
+    companyRequest:
+      request && company
+        ? {
+            id: request.id,
+            companyId: request.companyId,
+            companyName: company.name,
+            status: request.status,
+            createdAt: request.createdAt.toISOString(),
+          }
+        : null,
+  };
+}
+
 router.get("/workers", async (_req, res): Promise<void> => {
   const rows = await workers().find({}).sort({ createdAt: -1 }).toArray();
   res.json(ListWorkersResponse.parse(rows.map(workerDto)));
 });
+
+router.get(
+  "/workers/me/profile",
+  requireSignedIn,
+  async (req, res): Promise<void> => {
+    const userId = signedInUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Sign in to continue." });
+      return;
+    }
+    const worker = await workers().findOne({ ownerUserId: userId });
+    res.json(
+      GetMyWorkerProfileResponse.parse(await workerProfileState(worker)),
+    );
+  },
+);
+
+router.post(
+  "/workers/me/profile",
+  requireSignedIn,
+  async (req, res): Promise<void> => {
+    const userId = signedInUserId(req);
+    const parsed = CreateMyWorkerProfileBody.safeParse(req.body);
+    if (!userId) {
+      res.status(401).json({ error: "Sign in to continue." });
+      return;
+    }
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+    const name = parsed.data.name.trim();
+    const workplace = parsed.data.workplace.trim();
+    const jobTitle = parsed.data.jobTitle.trim();
+    if (name.length < 2 || workplace.length < 2 || jobTitle.length < 2) {
+      res.status(400).json({ error: "Name, job title, and workplace are required." });
+      return;
+    }
+    if (await workers().findOne({ ownerUserId: userId })) {
+      res.status(409).json({ error: "This account already has a worker profile." });
+      return;
+    }
+
+    const worker: WorkerRecord = {
+      id: await nextId("sanad_workers"),
+      publicId: randomUUID(),
+      ownerUserId: userId,
+      companyStatus: "none",
+      name,
+      avatarUrl: null,
+      workplace,
+      jobTitle,
+      company: "Independent",
+      createdAt: new Date(),
+    };
+    try {
+      await workers().insertOne(worker);
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === 11000
+      ) {
+        res.status(409).json({ error: "This account already has a worker profile." });
+        return;
+      }
+      throw error;
+    }
+    res
+      .status(201)
+      .json(
+        CreateMyWorkerProfileResponse.parse(await workerProfileState(worker)),
+      );
+  },
+);
 
 router.post("/workers", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateWorkerBody.safeParse(req.body);
@@ -191,7 +341,35 @@ router.delete(
   },
 );
 
-router.get("/workers/:publicId/dashboard", async (req, res): Promise<void> => {
+router.get(
+  "/workers/me/dashboard",
+  requireSignedIn,
+  async (req, res): Promise<void> => {
+    const userId = signedInUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Sign in to continue." });
+      return;
+    }
+    const worker = await workers().findOne({ ownerUserId: userId });
+    if (!worker) {
+      res.status(404).json({ error: "Worker profile not found." });
+      return;
+    }
+    res.json(
+      GetMyWorkerDashboardResponse.parse(await workerDashboardData(worker)),
+    );
+  },
+);
+
+router.get(
+  "/workers/:publicId/dashboard",
+  requireSignedIn,
+  async (req, res): Promise<void> => {
+  const userId = signedInUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Sign in to continue." });
+    return;
+  }
   const params = GetWorkerDashboardParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -209,46 +387,18 @@ router.get("/workers/:publicId/dashboard", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Worker not found" });
     return;
   }
-
-  const workerTips = await tips()
-    .find({ workerId: worker.id })
-    .sort({ createdAt: -1 })
-    .toArray();
-  const { month, start, end } = monthRange();
-  const monthlyFils = workerTips
-    .filter((tip) => tip.createdAt >= start && tip.createdAt < end)
-    .reduce((total, tip) => total + tip.amountFils, 0);
-  const ratings = workerTips.flatMap((tip) =>
-    tip.rating == null ? [] : [tip.rating],
-  );
-  const settlementHistory = await settlements()
-    .find({ workerId: worker.id })
-    .sort({ month: -1, updatedAt: -1 })
-    .toArray();
-  const settlement = settlementHistory.find((item) => item.month === month);
-
+  if (
+    worker.ownerUserId !== userId &&
+    !(await isAdminUser(userId))
+  ) {
+    res.status(404).json({ error: "Worker not found." });
+    return;
+  }
   res.json(
-    GetWorkerDashboardResponse.parse({
-      worker: publicWorkerDto(worker),
-      monthlyFils,
-      totalTips: workerTips.length,
-      averageRating:
-        ratings.length > 0
-          ? Math.round(
-              (ratings.reduce((total, rating) => total + rating, 0) /
-                ratings.length) *
-                10,
-            ) / 10
-          : null,
-      recentTips: workerTips.slice(0, 8).map((tip) => tipDto(tip, worker)),
-      settlements: settlementHistory.map((item) =>
-        settlementDto(item, worker),
-      ),
-      settlementStatus: settlement?.status ?? "pending",
-      qrUrl: `/tip/${worker.publicId}`,
-    }),
+    GetWorkerDashboardResponse.parse(await workerDashboardData(worker)),
   );
-});
+  },
+);
 
 router.post("/tips", async (req, res): Promise<void> => {
   const parsed = CreateDemoTipBody.safeParse(req.body);
@@ -268,17 +418,58 @@ router.post("/tips", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Worker not found" });
     return;
   }
+  const customerName = parsed.data.customerName?.trim() || "Anonymous";
+  const message = parsed.data.message?.trim() || null;
+  const rating = parsed.data.rating ?? null;
+  const idempotencyKey = parsed.data.idempotencyKey;
+  const existing = await tips().findOne({ idempotencyKey });
+  const matchesExisting = (tip: TipRecord) =>
+    tip.workerId === worker.id &&
+    tip.amountFils === parsed.data.amountFils &&
+    (tip.rating ?? null) === rating &&
+    (tip.message ?? null) === message &&
+    (tip.customerName?.trim() || "Anonymous") === customerName;
+  if (existing) {
+    if (!matchesExisting(existing)) {
+      res.status(409).json({ error: "This submission key was already used for a different tip." });
+      return;
+    }
+    res.status(200).json(CreateDemoTipResponse.parse(tipDto(existing, worker)));
+    return;
+  }
   const tip: TipRecord = {
     id: await nextId("sanad_tips"),
     reference: randomUUID(),
     workerId: worker.id,
     amountFils: parsed.data.amountFils,
-    rating: parsed.data.rating ?? null,
-    message: parsed.data.message?.trim() || null,
+    rating,
+    message,
+    customerName,
+    idempotencyKey,
     status: "demo_completed",
     createdAt: new Date(),
   };
-  await tips().insertOne(tip);
+  try {
+    await tips().insertOne(tip);
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000
+    ) {
+      const duplicate = await tips().findOne({ idempotencyKey });
+      if (duplicate && matchesExisting(duplicate)) {
+        res
+          .status(200)
+          .json(CreateDemoTipResponse.parse(tipDto(duplicate, worker)));
+        return;
+      }
+      res.status(409).json({ error: "This submission key was already used for a different tip." });
+      return;
+    }
+    throw error;
+  }
   res.status(201).json(
     CreateDemoTipResponse.parse(tipDto(tip, worker)),
   );
@@ -286,7 +477,7 @@ router.post("/tips", async (req, res): Promise<void> => {
 
 router.get(
   "/tips",
-  requireAdminForUnfilteredTips,
+  requireAdmin,
   async (req, res): Promise<void> => {
   const parsed = ListTipsQueryParams.safeParse(req.query);
   if (!parsed.success) {
@@ -345,6 +536,7 @@ router.get("/tips/:reference", async (req, res): Promise<void> => {
 
 router.get(
   "/companies/summary",
+  requireAdmin,
   async (_req, res): Promise<void> => {
   const { start, end } = monthRange();
   const [workerRows, tipRows] = await Promise.all([

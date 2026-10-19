@@ -10,6 +10,12 @@ import type { DemoTipInputAmountFils } from './demoTipInputAmountFils';
 export interface DemoTipInput {
   publicId: string;
   amountFils: DemoTipInputAmountFils;
+  idempotencyKey: string;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  customerName?: string | null;
   /**
      * @minimum 1
      * @maximum 5

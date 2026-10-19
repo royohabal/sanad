@@ -73,6 +73,136 @@ export interface WorkerInput {
   company: string;
 }
 
+export interface WorkerProfileInput {
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  name: string;
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  workplace: string;
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  jobTitle: string;
+}
+
+export type WorkerProfileStateCompanyStatus = typeof WorkerProfileStateCompanyStatus[keyof typeof WorkerProfileStateCompanyStatus];
+
+
+export const WorkerProfileStateCompanyStatus = {
+  none: 'none',
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export type WorkerCompanyRequestStatus = typeof WorkerCompanyRequestStatus[keyof typeof WorkerCompanyRequestStatus];
+
+
+export const WorkerCompanyRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface WorkerCompanyRequest {
+  id: number;
+  companyId: number;
+  companyName: string;
+  status: WorkerCompanyRequestStatus;
+  createdAt: string;
+}
+
+export interface WorkerProfileState {
+  worker: Worker | null;
+  companyStatus: WorkerProfileStateCompanyStatus;
+  companyRequest: WorkerCompanyRequest | null;
+}
+
+export type CompanyProfileStatus = typeof CompanyProfileStatus[keyof typeof CompanyProfileStatus];
+
+
+export const CompanyProfileStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface CompanyProfile {
+  id: number;
+  name: string;
+  status: CompanyProfileStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CompanyProfileState {
+  company: CompanyProfile | null;
+}
+
+export interface CompanyProfileInput {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  name: string;
+}
+
+export interface CompanyOption {
+  id: number;
+  name: string;
+}
+
+export interface WorkerCompanyRequestInput {
+  /** @minimum 1 */
+  companyId: number;
+}
+
+export type CompanyWorkerRequestStatus = typeof CompanyWorkerRequestStatus[keyof typeof CompanyWorkerRequestStatus];
+
+
+export const CompanyWorkerRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface CompanyWorkerRequest {
+  id: number;
+  worker: PublicWorker;
+  status: CompanyWorkerRequestStatus;
+  createdAt: string;
+}
+
+export type CompanyWorkerRequestUpdateStatus = typeof CompanyWorkerRequestUpdateStatus[keyof typeof CompanyWorkerRequestUpdateStatus];
+
+
+export const CompanyWorkerRequestUpdateStatus = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface CompanyWorkerRequestUpdate {
+  status: CompanyWorkerRequestUpdateStatus;
+}
+
+export type CompanyStatusUpdateStatus = typeof CompanyStatusUpdateStatus[keyof typeof CompanyStatusUpdateStatus];
+
+
+export const CompanyStatusUpdateStatus = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface CompanyStatusUpdate {
+  status: CompanyStatusUpdateStatus;
+}
+
 export type TipStatus = typeof TipStatus[keyof typeof TipStatus];
 
 
@@ -84,6 +214,7 @@ export interface Tip {
   reference: string;
   publicId: string;
   workerName: string;
+  customerName: string;
   amountFils: number;
   /** @nullable */
   rating?: number | null;
@@ -105,6 +236,12 @@ export const DemoTipInputAmountFils = {
 export interface DemoTipInput {
   publicId: string;
   amountFils: DemoTipInputAmountFils;
+  idempotencyKey: string;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  customerName?: string | null;
   /**
      * @minimum 1
      * @maximum 5
@@ -168,6 +305,23 @@ export interface CompanyWorkerSummary {
 
 export interface CompanySummary {
   workers: CompanyWorkerSummary[];
+  monthFils: number;
+  totalTips: number;
+}
+
+export interface CompanyMemberSummary {
+  worker: PublicWorker;
+  monthFils: number;
+  totalTips: number;
+  /** @nullable */
+  averageRating: number | null;
+  settlements: Settlement[];
+}
+
+export interface CompanyDashboard {
+  company: CompanyProfile;
+  workers: CompanyMemberSummary[];
+  requests: CompanyWorkerRequest[];
   monthFils: number;
   totalTips: number;
 }

@@ -34,7 +34,15 @@ import type {
   ChildDashboard,
   ChildInput,
   ChildUpdate,
+  CompanyDashboard,
+  CompanyOption,
+  CompanyProfile,
+  CompanyProfileInput,
+  CompanyProfileState,
+  CompanyStatusUpdate,
   CompanySummary,
+  CompanyWorkerRequest,
+  CompanyWorkerRequestUpdate,
   DemoTipInput,
   DemoTransfer,
   DemoTransferInput,
@@ -51,8 +59,12 @@ import type {
   SettlementStatusInput,
   Tip,
   Worker,
+  WorkerCompanyRequest,
+  WorkerCompanyRequestInput,
   WorkerDashboard,
-  WorkerInput
+  WorkerInput,
+  WorkerProfileInput,
+  WorkerProfileState
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -309,6 +321,910 @@ export const useBootstrapFirstAdmin = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getBootstrapFirstAdminMutationOptions(options));
+    }
+
+export const getGetMyWorkerProfileUrl = () => {
+
+
+
+
+  return `/api/workers/me/profile`
+}
+
+/**
+ * @summary Get the signed-in user's worker profile and company request state
+ */
+export const getMyWorkerProfile = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkerProfileState> => {
+
+  return customFetch<WorkerProfileState>(getGetMyWorkerProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyWorkerProfileQueryKey = () => {
+    return [
+    `/api/workers/me/profile`
+    ] as const;
+    }
+
+
+export const getGetMyWorkerProfileQueryOptions = <TData = Awaited<ReturnType<typeof getMyWorkerProfile>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyWorkerProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyWorkerProfile>>> = ({ signal }) => getMyWorkerProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyWorkerProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getMyWorkerProfile>>>
+export type GetMyWorkerProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the signed-in user's worker profile and company request state
+ */
+
+export function useGetMyWorkerProfile<TData = Awaited<ReturnType<typeof getMyWorkerProfile>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyWorkerProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateMyWorkerProfileUrl = () => {
+
+
+
+
+  return `/api/workers/me/profile`
+}
+
+/**
+ * @summary Register the signed-in user as a worker
+ */
+export const createMyWorkerProfile = async (workerProfileInput: WorkerProfileInput, options?: Parameters<typeof customFetch>[1]): Promise<WorkerProfileState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WorkerProfileState>(getCreateMyWorkerProfileUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workerProfileInput)
+  }
+);}
+
+
+
+
+
+export const getCreateMyWorkerProfileMutationKey = () => ['createMyWorkerProfile'] as const;
+
+export const getCreateMyWorkerProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMyWorkerProfile>>, TError,CreateMyWorkerProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMyWorkerProfile>>, TError,CreateMyWorkerProfileMutationVariables, TContext> => {
+
+const mutationKey = getCreateMyWorkerProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMyWorkerProfile>>, CreateMyWorkerProfileMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMyWorkerProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMyWorkerProfileMutationResult = NonNullable<Awaited<ReturnType<typeof createMyWorkerProfile>>>
+    export type CreateMyWorkerProfileMutationBody = BodyType<WorkerProfileInput>
+    export type CreateMyWorkerProfileMutationError = ErrorType<void>
+    export type CreateMyWorkerProfileMutationVariables = {data: BodyType<WorkerProfileInput>}
+
+    /**
+ * @summary Register the signed-in user as a worker
+ */
+export const useCreateMyWorkerProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMyWorkerProfile>>, TError,CreateMyWorkerProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMyWorkerProfile>>,
+        TError,
+        CreateMyWorkerProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateMyWorkerProfileMutationOptions(options));
+    }
+
+export const getGetMyWorkerDashboardUrl = () => {
+
+
+
+
+  return `/api/workers/me/dashboard`
+}
+
+/**
+ * @summary Get the signed-in worker's private dashboard
+ */
+export const getMyWorkerDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkerDashboard> => {
+
+  return customFetch<WorkerDashboard>(getGetMyWorkerDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyWorkerDashboardQueryKey = () => {
+    return [
+    `/api/workers/me/dashboard`
+    ] as const;
+    }
+
+
+export const getGetMyWorkerDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getMyWorkerDashboard>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyWorkerDashboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyWorkerDashboard>>> = ({ signal }) => getMyWorkerDashboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerDashboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyWorkerDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getMyWorkerDashboard>>>
+export type GetMyWorkerDashboardQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the signed-in worker's private dashboard
+ */
+
+export function useGetMyWorkerDashboard<TData = Awaited<ReturnType<typeof getMyWorkerDashboard>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyWorkerDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateWorkerCompanyRequestUrl = () => {
+
+
+
+
+  return `/api/workers/me/company-requests`
+}
+
+/**
+ * @summary Request association with an approved company
+ */
+export const createWorkerCompanyRequest = async (workerCompanyRequestInput: WorkerCompanyRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<WorkerCompanyRequest> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WorkerCompanyRequest>(getCreateWorkerCompanyRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workerCompanyRequestInput)
+  }
+);}
+
+
+
+
+
+export const getCreateWorkerCompanyRequestMutationKey = () => ['createWorkerCompanyRequest'] as const;
+
+export const getCreateWorkerCompanyRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorkerCompanyRequest>>, TError,CreateWorkerCompanyRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWorkerCompanyRequest>>, TError,CreateWorkerCompanyRequestMutationVariables, TContext> => {
+
+const mutationKey = getCreateWorkerCompanyRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWorkerCompanyRequest>>, CreateWorkerCompanyRequestMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createWorkerCompanyRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWorkerCompanyRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createWorkerCompanyRequest>>>
+    export type CreateWorkerCompanyRequestMutationBody = BodyType<WorkerCompanyRequestInput>
+    export type CreateWorkerCompanyRequestMutationError = ErrorType<void>
+    export type CreateWorkerCompanyRequestMutationVariables = {data: BodyType<WorkerCompanyRequestInput>}
+
+    /**
+ * @summary Request association with an approved company
+ */
+export const useCreateWorkerCompanyRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorkerCompanyRequest>>, TError,CreateWorkerCompanyRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWorkerCompanyRequest>>,
+        TError,
+        CreateWorkerCompanyRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateWorkerCompanyRequestMutationOptions(options));
+    }
+
+export const getListApprovedCompaniesUrl = () => {
+
+
+
+
+  return `/api/companies/approved`
+}
+
+/**
+ * @summary List approved companies available for worker association
+ */
+export const listApprovedCompanies = async ( options?: Parameters<typeof customFetch>[1]): Promise<CompanyOption[]> => {
+
+  return customFetch<CompanyOption[]>(getListApprovedCompaniesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListApprovedCompaniesQueryKey = () => {
+    return [
+    `/api/companies/approved`
+    ] as const;
+    }
+
+
+export const getListApprovedCompaniesQueryOptions = <TData = Awaited<ReturnType<typeof listApprovedCompanies>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listApprovedCompanies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListApprovedCompaniesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listApprovedCompanies>>> = ({ signal }) => listApprovedCompanies({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listApprovedCompanies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListApprovedCompaniesQueryResult = NonNullable<Awaited<ReturnType<typeof listApprovedCompanies>>>
+export type ListApprovedCompaniesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List approved companies available for worker association
+ */
+
+export function useListApprovedCompanies<TData = Awaited<ReturnType<typeof listApprovedCompanies>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listApprovedCompanies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListApprovedCompaniesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetMyCompanyProfileUrl = () => {
+
+
+
+
+  return `/api/companies/me/profile`
+}
+
+/**
+ * @summary Get the signed-in user's company account
+ */
+export const getMyCompanyProfile = async ( options?: Parameters<typeof customFetch>[1]): Promise<CompanyProfileState> => {
+
+  return customFetch<CompanyProfileState>(getGetMyCompanyProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyCompanyProfileQueryKey = () => {
+    return [
+    `/api/companies/me/profile`
+    ] as const;
+    }
+
+
+export const getGetMyCompanyProfileQueryOptions = <TData = Awaited<ReturnType<typeof getMyCompanyProfile>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyCompanyProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyCompanyProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyCompanyProfile>>> = ({ signal }) => getMyCompanyProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyCompanyProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyCompanyProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getMyCompanyProfile>>>
+export type GetMyCompanyProfileQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the signed-in user's company account
+ */
+
+export function useGetMyCompanyProfile<TData = Awaited<ReturnType<typeof getMyCompanyProfile>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyCompanyProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyCompanyProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateMyCompanyProfileUrl = () => {
+
+
+
+
+  return `/api/companies/me/profile`
+}
+
+/**
+ * @summary Register a company account pending SANAD review
+ */
+export const createMyCompanyProfile = async (companyProfileInput: CompanyProfileInput, options?: Parameters<typeof customFetch>[1]): Promise<CompanyProfile> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CompanyProfile>(getCreateMyCompanyProfileUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(companyProfileInput)
+  }
+);}
+
+
+
+
+
+export const getCreateMyCompanyProfileMutationKey = () => ['createMyCompanyProfile'] as const;
+
+export const getCreateMyCompanyProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMyCompanyProfile>>, TError,CreateMyCompanyProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMyCompanyProfile>>, TError,CreateMyCompanyProfileMutationVariables, TContext> => {
+
+const mutationKey = getCreateMyCompanyProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMyCompanyProfile>>, CreateMyCompanyProfileMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMyCompanyProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMyCompanyProfileMutationResult = NonNullable<Awaited<ReturnType<typeof createMyCompanyProfile>>>
+    export type CreateMyCompanyProfileMutationBody = BodyType<CompanyProfileInput>
+    export type CreateMyCompanyProfileMutationError = ErrorType<void>
+    export type CreateMyCompanyProfileMutationVariables = {data: BodyType<CompanyProfileInput>}
+
+    /**
+ * @summary Register a company account pending SANAD review
+ */
+export const useCreateMyCompanyProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMyCompanyProfile>>, TError,CreateMyCompanyProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMyCompanyProfile>>,
+        TError,
+        CreateMyCompanyProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateMyCompanyProfileMutationOptions(options));
+    }
+
+export const getGetMyCompanyDashboardUrl = () => {
+
+
+
+
+  return `/api/companies/me/dashboard`
+}
+
+/**
+ * @summary Get the signed-in company's authorized worker summaries and reports
+ */
+export const getMyCompanyDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<CompanyDashboard> => {
+
+  return customFetch<CompanyDashboard>(getGetMyCompanyDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyCompanyDashboardQueryKey = () => {
+    return [
+    `/api/companies/me/dashboard`
+    ] as const;
+    }
+
+
+export const getGetMyCompanyDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getMyCompanyDashboard>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyCompanyDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyCompanyDashboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyCompanyDashboard>>> = ({ signal }) => getMyCompanyDashboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyCompanyDashboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyCompanyDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getMyCompanyDashboard>>>
+export type GetMyCompanyDashboardQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the signed-in company's authorized worker summaries and reports
+ */
+
+export function useGetMyCompanyDashboard<TData = Awaited<ReturnType<typeof getMyCompanyDashboard>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyCompanyDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyCompanyDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewWorkerCompanyRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/companies/me/worker-requests/${id}`
+}
+
+/**
+ * @summary Approve or reject a worker's association request
+ */
+export const reviewWorkerCompanyRequest = async (id: number,
+    companyWorkerRequestUpdate: CompanyWorkerRequestUpdate, options?: Parameters<typeof customFetch>[1]): Promise<CompanyWorkerRequest> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CompanyWorkerRequest>(getReviewWorkerCompanyRequestUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(companyWorkerRequestUpdate)
+  }
+);}
+
+
+
+
+
+export const getReviewWorkerCompanyRequestMutationKey = () => ['reviewWorkerCompanyRequest'] as const;
+
+export const getReviewWorkerCompanyRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewWorkerCompanyRequest>>, TError,ReviewWorkerCompanyRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewWorkerCompanyRequest>>, TError,ReviewWorkerCompanyRequestMutationVariables, TContext> => {
+
+const mutationKey = getReviewWorkerCompanyRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewWorkerCompanyRequest>>, ReviewWorkerCompanyRequestMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewWorkerCompanyRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewWorkerCompanyRequestMutationResult = NonNullable<Awaited<ReturnType<typeof reviewWorkerCompanyRequest>>>
+    export type ReviewWorkerCompanyRequestMutationBody = BodyType<CompanyWorkerRequestUpdate>
+    export type ReviewWorkerCompanyRequestMutationError = ErrorType<void>
+    export type ReviewWorkerCompanyRequestMutationVariables = {id: number;data: BodyType<CompanyWorkerRequestUpdate>}
+
+    /**
+ * @summary Approve or reject a worker's association request
+ */
+export const useReviewWorkerCompanyRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewWorkerCompanyRequest>>, TError,ReviewWorkerCompanyRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewWorkerCompanyRequest>>,
+        TError,
+        ReviewWorkerCompanyRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReviewWorkerCompanyRequestMutationOptions(options));
+    }
+
+export const getListPendingCompaniesUrl = () => {
+
+
+
+
+  return `/api/admin/companies`
+}
+
+/**
+ * @summary List companies awaiting administrator review
+ */
+export const listPendingCompanies = async ( options?: Parameters<typeof customFetch>[1]): Promise<CompanyProfile[]> => {
+
+  return customFetch<CompanyProfile[]>(getListPendingCompaniesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPendingCompaniesQueryKey = () => {
+    return [
+    `/api/admin/companies`
+    ] as const;
+    }
+
+
+export const getListPendingCompaniesQueryOptions = <TData = Awaited<ReturnType<typeof listPendingCompanies>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPendingCompanies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPendingCompaniesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPendingCompanies>>> = ({ signal }) => listPendingCompanies({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPendingCompanies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPendingCompaniesQueryResult = NonNullable<Awaited<ReturnType<typeof listPendingCompanies>>>
+export type ListPendingCompaniesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List companies awaiting administrator review
+ */
+
+export function useListPendingCompanies<TData = Awaited<ReturnType<typeof listPendingCompanies>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPendingCompanies>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPendingCompaniesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewCompanyUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/companies/${id}`
+}
+
+/**
+ * @summary Approve or reject a pending company account
+ */
+export const reviewCompany = async (id: number,
+    companyStatusUpdate: CompanyStatusUpdate, options?: Parameters<typeof customFetch>[1]): Promise<CompanyProfile> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CompanyProfile>(getReviewCompanyUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(companyStatusUpdate)
+  }
+);}
+
+
+
+
+
+export const getReviewCompanyMutationKey = () => ['reviewCompany'] as const;
+
+export const getReviewCompanyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewCompany>>, TError,ReviewCompanyMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewCompany>>, TError,ReviewCompanyMutationVariables, TContext> => {
+
+const mutationKey = getReviewCompanyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewCompany>>, ReviewCompanyMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewCompany(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewCompanyMutationResult = NonNullable<Awaited<ReturnType<typeof reviewCompany>>>
+    export type ReviewCompanyMutationBody = BodyType<CompanyStatusUpdate>
+    export type ReviewCompanyMutationError = ErrorType<void>
+    export type ReviewCompanyMutationVariables = {id: number;data: BodyType<CompanyStatusUpdate>}
+
+    /**
+ * @summary Approve or reject a pending company account
+ */
+export const useReviewCompany = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewCompany>>, TError,ReviewCompanyMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewCompany>>,
+        TError,
+        ReviewCompanyMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReviewCompanyMutationOptions(options));
     }
 
 export const getListWorkersUrl = () => {
@@ -636,7 +1552,7 @@ export const getGetWorkerDashboardUrl = (publicId: string,) => {
 }
 
 /**
- * @summary Get worker tip and settlement overview
+ * @summary Get owner-only worker tip and settlement overview
  */
 export const getWorkerDashboard = async (publicId: string, options?: Parameters<typeof customFetch>[1]): Promise<WorkerDashboard> => {
 
@@ -683,7 +1599,7 @@ export type GetWorkerDashboardQueryError = ErrorType<void>
 
 
 /**
- * @summary Get worker tip and settlement overview
+ * @summary Get owner-only worker tip and settlement overview
  */
 
 export function useGetWorkerDashboard<TData = Awaited<ReturnType<typeof getWorkerDashboard>>, TError = ErrorType<void>>(
@@ -720,8 +1636,8 @@ export const getListTipsUrl = (params?: ListTipsParams,) => {
 }
 
 /**
- * A publicId filter returns that worker's simulated tip activity; the unfiltered platform-wide list is admin-only.
- * @summary List simulated tips
+ * Tip history is private to workers and administrators. Workers use their owner-only dashboard.
+ * @summary List simulated tips for administrator review
  */
 export const listTips = async (params?: ListTipsParams, options?: Parameters<typeof customFetch>[1]): Promise<Tip[]> => {
 
@@ -768,7 +1684,7 @@ export type ListTipsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List simulated tips
+ * @summary List simulated tips for administrator review
  */
 
 export function useListTips<TData = Awaited<ReturnType<typeof listTips>>, TError = ErrorType<unknown>>(
@@ -964,7 +1880,7 @@ export const getGetCompanySummaryUrl = () => {
 }
 
 /**
- * @summary Get worker totals for the company demo
+ * @summary Get platform worker totals for administrators
  */
 export const getCompanySummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<CompanySummary> => {
 
@@ -1011,7 +1927,7 @@ export type GetCompanySummaryQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get worker totals for the company demo
+ * @summary Get platform worker totals for administrators
  */
 
 export function useGetCompanySummary<TData = Awaited<ReturnType<typeof getCompanySummary>>, TError = ErrorType<unknown>>(
