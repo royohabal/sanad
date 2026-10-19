@@ -112,7 +112,7 @@ export const getHealthCheckQueryKey = () => {
     }
 
 
-export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getHealthCheckQueryOptions = <TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -131,14 +131,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type HealthCheckQueryResult = NonNullable<Awaited<ReturnType<typeof healthCheck>>>
-export type HealthCheckQueryError = ErrorType<unknown>
+export type HealthCheckQueryError = ErrorType<void>
 
 
 /**
  * @summary Health check
  */
 
-export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<unknown>>(
+export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, TError = ErrorType<void>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -275,7 +275,7 @@ return customFetch<Worker>(getCreateWorkerUrl(),
 
 export const getCreateWorkerMutationKey = () => ['createWorker'] as const;
 
-export const getCreateWorkerMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateWorkerMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorker>>, TError,CreateWorkerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createWorker>>, TError,CreateWorkerMutationVariables, TContext> => {
 
@@ -304,13 +304,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateWorkerMutationResult = NonNullable<Awaited<ReturnType<typeof createWorker>>>
     export type CreateWorkerMutationBody = BodyType<WorkerInput>
-    export type CreateWorkerMutationError = ErrorType<unknown>
+    export type CreateWorkerMutationError = ErrorType<void>
     export type CreateWorkerMutationVariables = {data: BodyType<WorkerInput>}
 
     /**
  * @summary Register a demo worker
  */
-export const useCreateWorker = <TError = ErrorType<unknown>,
+export const useCreateWorker = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorker>>, TError,CreateWorkerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createWorker>>,
@@ -981,7 +981,7 @@ export const createMonthlySettlements = async ( options?: Parameters<typeof cust
 
 export const getCreateMonthlySettlementsMutationKey = () => ['createMonthlySettlements'] as const;
 
-export const getCreateMonthlySettlementsMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateMonthlySettlementsMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMonthlySettlements>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createMonthlySettlements>>, TError,void, TContext> => {
 
@@ -1010,13 +1010,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateMonthlySettlementsMutationResult = NonNullable<Awaited<ReturnType<typeof createMonthlySettlements>>>
 
-    export type CreateMonthlySettlementsMutationError = ErrorType<unknown>
+    export type CreateMonthlySettlementsMutationError = ErrorType<void>
 
 
     /**
  * @summary Create current-month pending settlement records
  */
-export const useCreateMonthlySettlements = <TError = ErrorType<unknown>,
+export const useCreateMonthlySettlements = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMonthlySettlements>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createMonthlySettlements>>,
@@ -1149,7 +1149,7 @@ export const getGetAdminOverviewQueryKey = () => {
     }
 
 
-export const getGetAdminOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminOverview>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAdminOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAdminOverview>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1168,14 +1168,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetAdminOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminOverview>>>
-export type GetAdminOverviewQueryError = ErrorType<unknown>
+export type GetAdminOverviewQueryError = ErrorType<void>
 
 
 /**
  * @summary Get demo platform overview
  */
 
-export function useGetAdminOverview<TData = Awaited<ReturnType<typeof getAdminOverview>>, TError = ErrorType<unknown>>(
+export function useGetAdminOverview<TData = Awaited<ReturnType<typeof getAdminOverview>>, TError = ErrorType<void>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -1312,7 +1312,7 @@ return customFetch<Child>(getCreateChildUrl(),
 
 export const getCreateChildMutationKey = () => ['createChild'] as const;
 
-export const getCreateChildMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateChildMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChild>>, TError,CreateChildMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createChild>>, TError,CreateChildMutationVariables, TContext> => {
 
@@ -1341,13 +1341,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateChildMutationResult = NonNullable<Awaited<ReturnType<typeof createChild>>>
     export type CreateChildMutationBody = BodyType<ChildInput>
-    export type CreateChildMutationError = ErrorType<unknown>
+    export type CreateChildMutationError = ErrorType<void>
     export type CreateChildMutationVariables = {data: BodyType<ChildInput>}
 
     /**
  * @summary Create a demo child profile
  */
-export const useCreateChild = <TError = ErrorType<unknown>,
+export const useCreateChild = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createChild>>, TError,CreateChildMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createChild>>,

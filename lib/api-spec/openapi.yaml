@@ -26,6 +26,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+        "503":
+          description: MongoDB is unavailable
   /workers:
     get:
       operationId: listWorkers
@@ -57,6 +59,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Worker"
+        "403":
+          description: Worker management is disabled until secure sign-in is configured
   /workers/{publicId}:
     get:
       operationId: getWorkerByPublicId
@@ -92,6 +96,8 @@ paths:
           description: Worker removed
         "404":
           description: Worker not found
+        "403":
+          description: Worker management is disabled until secure sign-in is configured
   /workers/{publicId}/dashboard:
     get:
       operationId: getWorkerDashboard
@@ -210,6 +216,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Settlement"
+        "403":
+          description: Settlement management is disabled until secure sign-in is configured
   /settlements/{id}:
     patch:
       operationId: updateSettlementStatus
@@ -236,6 +244,8 @@ paths:
                 $ref: "#/components/schemas/Settlement"
         "404":
           description: Settlement not found
+        "403":
+          description: Settlement management is disabled until secure sign-in is configured
   /admin/overview:
     get:
       operationId: getAdminOverview
@@ -248,6 +258,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminOverview"
+        "403":
+          description: Admin access is disabled until secure sign-in is configured
   /children:
     get:
       operationId: listChildren
@@ -279,6 +291,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Child"
+        "403":
+          description: Family management is disabled until secure sign-in is configured
   /child-recipients/{publicId}:
     get:
       operationId: getPublicChildRecipient
@@ -355,6 +369,8 @@ paths:
                 $ref: "#/components/schemas/Child"
         "404":
           description: Child profile not found
+        "403":
+          description: Family management is disabled until secure sign-in is configured
   /children/{id}/dashboard:
     get:
       operationId: getChildDashboard
@@ -375,6 +391,8 @@ paths:
                 $ref: "#/components/schemas/ChildDashboard"
         "404":
           description: Child not found
+        "403":
+          description: Family management is disabled until secure sign-in is configured
   /children/{id}/allowances:
     post:
       operationId: createAllowance
@@ -401,6 +419,8 @@ paths:
                 $ref: "#/components/schemas/ChildActivity"
         "404":
           description: Child not found
+        "403":
+          description: Family management is disabled until secure sign-in is configured
   /children/{id}/goals:
     post:
       operationId: createSavingsGoal
@@ -458,6 +478,8 @@ paths:
                 $ref: "#/components/schemas/SavingsGoal"
         "404":
           description: Child or goal not found
+        "403":
+          description: Family management is disabled until secure sign-in is configured
   /children/{id}/approvals:
     post:
       operationId: createApprovalRequest
@@ -484,6 +506,8 @@ paths:
                 $ref: "#/components/schemas/ApprovalRequest"
         "404":
           description: Child not found
+        "403":
+          description: Family management is disabled until secure sign-in is configured
   /approvals/{id}:
     patch:
       operationId: updateApprovalRequest
@@ -510,6 +534,8 @@ paths:
                 $ref: "#/components/schemas/ApprovalRequest"
         "404":
           description: Approval request not found
+        "403":
+          description: Family management is disabled until secure sign-in is configured
   /demo-transfers:
     get:
       operationId: listDemoTransfers
