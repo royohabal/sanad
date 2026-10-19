@@ -1,0 +1,46 @@
+Based on the SANAD functionality audit, please begin fixing the highest-priority issues.
+
+**Important: preserve the existing project. Do not rebuild from scratch, redesign the site, delete existing features, or delete or reset any database records. Do not implement Stripe or real payments yet.**
+
+### Priority 1: Fix the production security issue
+- Investigate why the published `/api/companies/summary` endpoint returns `200` without authentication while the current workspace protects it.
+- Ensure private company information is never returned to unauthorized users.
+- Verify authorization on the server, not just in the frontend.
+- Inspect public demo transfer and tip endpoints for abuse risks. Add appropriate server-side rate limiting and input validation where practical without breaking legitimate demo usage.
+- Do not expose credentials, secrets, or private user information in logs or responses.
+
+### Priority 2: Align the deployed website and API with the current workspace
+- Investigate why the published site appears to use older code than the current workspace.
+- Check the deployment configuration, build output, routing, and API deployment setup before changing anything.
+- Restore the `/direct-tip` route.
+- Make sure the intended worker registration, login, personal dashboard, and company profile/dashboard endpoints are available in production.
+- Ensure the frontend and backend versions are compatible.
+- Do not assume that publishing alone fixes the problem; test the actual production URLs and API responses afterward.
+
+### Priority 3: Verify authentication and account isolation
+- Check the production Clerk configuration and sign-in flow.
+- Verify that a signed-in worker can create or complete their profile, see their own dashboard, and access their own QR code and tip records.
+- Verify that one worker cannot access another worker's private data by changing an ID or URL.
+- Verify that company users can access only authorized company data.
+- Check the admin bootstrap configuration without exposing secrets or granting unauthorized admin access.
+
+### Data safety requirements
+- Do not reset, overwrite, migrate, or delete production data as part of these fixes.
+- Do not copy development records into production automatically.
+- Before any migration, explain the proposed changes and ask for approval.
+- Preserve the existing SANAD color palette, navigation, Arabic/English support, and Parent, Child, Individual, Worker, Company, and Admin features.
+
+### Testing and final report
+After the changes, report:
+1. Which files and routes changed.
+2. What caused the production/workspace mismatch.
+3. Whether the company summary now rejects unauthorized requests.
+4. Whether `/direct-tip` works in production.
+5. Whether the intended worker and company endpoints are available in production.
+6. Which authentication and authorization checks were actually tested.
+7. Any remaining failures or items that still need manual sign-in testing.
+8. Whether a new deployment is required and whether it has actually been completed.
+
+Do not claim a fix is complete unless it has been tested. If you cannot verify a production behavior, mark it as unverified.
+
+Start by inspecting the relevant code and deployment configuration, then implement these focused fixes without making unrelated changes.
