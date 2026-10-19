@@ -13,4 +13,8 @@ export const WorkerDashboardSettlementStatus = {
   pending: 'pending',
   processing: 'processing',
   completed: 'completed',
+  approved: 'approved',
+  paid: 'paid',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
 } as const;

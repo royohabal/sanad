@@ -9,6 +9,7 @@ import type { PublicWorker } from './publicWorker';
 import type { Settlement } from './settlement';
 import type { Tip } from './tip';
 import type { WorkerDashboardSettlementStatus } from './workerDashboardSettlementStatus';
+import type { WorkerWalletSummary } from './workerWalletSummary';
 
 export interface WorkerDashboard {
   worker: PublicWorker;
@@ -20,4 +21,10 @@ export interface WorkerDashboard {
   settlements: Settlement[];
   settlementStatus: WorkerDashboardSettlementStatus;
   qrUrl: string;
+  wallet: WorkerWalletSummary;
+  currentMonthIndependentTipsFils: number;
+  currentMonthCompanyTipsFils: number;
+  previousMonthTipsFils: number;
+  /** @nullable */
+  estimatedNextSettlement: Date | null;
 }

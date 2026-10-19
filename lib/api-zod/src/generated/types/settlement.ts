@@ -13,6 +13,21 @@ export interface Settlement {
   workerName: string;
   month: string;
   amountFils: number;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  salaryFils?: number | null;
+  /** @nullable */
+  tipsFils?: number | null;
+  /** @nullable */
+  adjustmentsFils?: number | null;
+  /** @nullable */
+  tipCount?: number | null;
+  /** @nullable */
+  periodStart?: Date | null;
+  /** @nullable */
+  periodEnd?: Date | null;
+  isLegacy?: boolean;
   status: SettlementStatus;
   updatedAt: Date;
 }

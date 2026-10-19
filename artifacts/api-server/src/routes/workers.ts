@@ -43,6 +43,13 @@ import {
   signedInUserId,
 } from "../middleware/authz";
 import { rateLimitPublicRequests } from "../lib/publicRateLimit";
+import {
+  appendWorkerLedgerEvent,
+  minimumWorkerWithdrawalFils,
+  workerLedgerBalance,
+  workerWithdrawalDto,
+  workerWithdrawals,
+} from "../lib/workerFinance";
 
 const router: IRouter = Router();
 const workers = () => getMongoDb().collection<WorkerRecord>("sanad_workers");
@@ -112,12 +119,31 @@ function tipDto(tip: TipRecord, worker: WorkerRecord) {
 }
 
 function settlementDto(settlement: SettlementRecord, worker: WorkerRecord) {
+  const monthMatch = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(settlement.month);
+  const periodStart = monthMatch
+    ? `${settlement.month}-01`
+    : null;
+  const periodEnd = monthMatch
+    ? new Date(
+        Date.UTC(Number(monthMatch[1]), Number(monthMatch[2]), 0),
+      )
+        .toISOString()
+        .slice(0, 10)
+    : null;
   return {
     id: settlement.id,
     publicId: worker.publicId,
     workerName: worker.name,
     month: settlement.month,
     amountFils: settlement.amountFils,
+    companyName: settlement.companyName ?? null,
+    salaryFils: settlement.salaryFils ?? null,
+    tipsFils: settlement.tipsFils ?? null,
+    adjustmentsFils: settlement.adjustmentsFils ?? null,
+    tipCount: settlement.tipCount ?? null,
+    periodStart,
+    periodEnd,
+    isLegacy: settlement.companyId == null,
     status: settlement.status,
     updatedAt: settlement.updatedAt.toISOString(),
   };
@@ -129,21 +155,108 @@ async function workerDashboardData(worker: WorkerRecord) {
     .sort({ createdAt: -1 })
     .toArray();
   const { month, start, end } = monthRange();
+  const previousStart = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - 1, 1),
+  );
   const monthlyFils = workerTips
     .filter((tip) => tip.createdAt >= start && tip.createdAt < end)
+    .reduce((total, tip) => total + tip.amountFils, 0);
+  const previousMonthTipsFils = workerTips
+    .filter((tip) => tip.createdAt >= previousStart && tip.createdAt < start)
+    .reduce((total, tip) => total + tip.amountFils, 0);
+  const currentMonthIndependentTipsFils = workerTips
+    .filter(
+      (tip) =>
+        tip.createdAt >= start &&
+        tip.createdAt < end &&
+        tip.payoutMethod === "independent",
+    )
+    .reduce((total, tip) => total + tip.amountFils, 0);
+  const currentMonthCompanyTipsFils = workerTips
+    .filter(
+      (tip) =>
+        tip.createdAt >= start &&
+        tip.createdAt < end &&
+        tip.payoutMethod === "company",
+    )
+    .reduce((total, tip) => total + tip.amountFils, 0);
+  const independentTipsFils = workerTips
+    .filter((tip) => tip.payoutMethod === "independent")
+    .reduce((total, tip) => total + tip.amountFils, 0);
+  const companyTipsFils = workerTips
+    .filter((tip) => tip.payoutMethod === "company")
+    .reduce((total, tip) => total + tip.amountFils, 0);
+  const legacyUnassignedFils = workerTips
+    .filter((tip) => tip.payoutMethod == null)
     .reduce((total, tip) => total + tip.amountFils, 0);
   const ratings = workerTips.flatMap((tip) =>
     tip.rating == null ? [] : [tip.rating],
   );
-  const settlementHistory = await settlements()
-    .find({ workerId: worker.id })
-    .sort({ month: -1, updatedAt: -1 })
-    .toArray();
-  const settlement = settlementHistory.find((item) => item.month === month);
+  const [
+    settlementHistory,
+    availableFils,
+    withdrawalRows,
+    reservedRows,
+  ] = await Promise.all([
+    settlements().find({ workerId: worker.id }).sort({ month: -1, updatedAt: -1 }).toArray(),
+    workerLedgerBalance(worker.id),
+    workerWithdrawals()
+      .find({ workerId: worker.id })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .toArray(),
+    workerWithdrawals()
+      .aggregate<{ reservedFils: number }>([
+        {
+          $match: {
+            workerId: worker.id,
+            status: { $in: ["pending", "processing"] },
+          },
+        },
+        { $group: { _id: null, reservedFils: { $sum: "$amountFils" } } },
+      ])
+      .next(),
+  ]);
+  const settlement = settlementHistory[0];
+  const companyName =
+    worker.companyId != null && worker.companyStatus === "approved"
+      ? worker.company
+      : null;
+  const legacyCompanyIds = [
+    ...new Set([
+      ...(worker.companyId != null && worker.companyStatus === "approved"
+        ? [worker.companyId]
+        : []),
+      ...(worker.companyMemberships ?? []).map(
+        (membership) => membership.companyId,
+      ),
+    ]),
+  ];
+  const legacyCompanies = legacyCompanyIds.length
+    ? await companies()
+        .find(
+          { id: { $in: legacyCompanyIds }, status: "approved" },
+          { projection: { id: 1, name: 1 } },
+        )
+        .sort({ name: 1 })
+        .toArray()
+    : [];
+  const estimatedNextSettlement =
+    companyName || currentMonthCompanyTipsFils > 0
+      ? new Date(
+          Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1),
+        )
+          .toISOString()
+          .slice(0, 10)
+      : null;
 
   return {
     worker: publicWorkerDto(worker),
     monthlyFils,
+    currentMonthIndependentTipsFils,
+    currentMonthCompanyTipsFils,
+    previousMonthTipsFils,
+    estimatedNextSettlement,
     totalTips: workerTips.length,
     averageRating:
       ratings.length > 0
@@ -157,6 +270,25 @@ async function workerDashboardData(worker: WorkerRecord) {
     settlements: settlementHistory.map((item) => settlementDto(item, worker)),
     settlementStatus: settlement?.status ?? "pending",
     qrUrl: `/tip/${worker.publicId}`,
+    wallet: {
+      availableFils,
+      reservedFils: reservedRows?.reservedFils ?? 0,
+      independentTipsFils,
+      companyTipsFils,
+      legacyUnassignedFils,
+      minimumWithdrawalFils: minimumWorkerWithdrawalFils(),
+      payoutMethod: companyName ? "company" : "independent",
+      companyName,
+      legacyCompanies: legacyCompanies.map(({ id, name }) => ({ id, name })),
+      demoPayoutProfile: worker.demoPayoutProfile
+        ? {
+            bankName: worker.demoPayoutProfile.bankName,
+            accountLabel: worker.demoPayoutProfile.accountLabel,
+            updatedAt: worker.demoPayoutProfile.updatedAt.toISOString(),
+          }
+        : null,
+      withdrawals: withdrawalRows.map(workerWithdrawalDto),
+    },
   };
 }
 
@@ -188,7 +320,10 @@ async function workerProfileState(worker: WorkerRecord | null) {
 }
 
 router.get("/workers", async (_req, res): Promise<void> => {
-  const rows = await workers().find({}).sort({ createdAt: -1 }).toArray();
+  const rows = await workers()
+    .find({ archivedAt: { $exists: false } })
+    .sort({ createdAt: -1 })
+    .toArray();
   res.json(ListWorkersResponse.parse(rows.map(workerDto)));
 });
 
@@ -299,6 +434,7 @@ router.get("/workers/:publicId", async (req, res): Promise<void> => {
 
   const worker = await workers().findOne({
     publicId: params.data.publicId,
+    archivedAt: { $exists: false },
   });
   if (!worker) {
     res.status(404).json({ error: "Worker not found" });
@@ -323,18 +459,19 @@ router.delete(
     return;
   }
 
-  const workerId = await withMongoTransaction(async (session) => {
-    const worker = await workers().findOne(
+  const archived = await workers().updateOne(
+    { publicId: params.data.publicId, archivedAt: { $exists: false } },
+    { $set: { archivedAt: new Date() } },
+  );
+  if (archived.matchedCount === 0) {
+    const exists = await workers().findOne(
       { publicId: params.data.publicId },
-      { projection: { id: 1 }, session },
+      { projection: { id: 1 } },
     );
-    if (!worker) return null;
-    await tips().deleteMany({ workerId: worker.id }, { session });
-    await settlements().deleteMany({ workerId: worker.id }, { session });
-    await workers().deleteOne({ id: worker.id }, { session });
-    return worker.id;
-  });
-  if (workerId == null) {
+    if (exists) {
+      res.sendStatus(204);
+      return;
+    }
     res.status(404).json({ error: "Worker not found" });
     return;
   }
@@ -383,6 +520,7 @@ router.get(
 
   const worker = await workers().findOne({
     publicId: params.data.publicId,
+    archivedAt: { $exists: false },
   });
   if (!worker) {
     res.status(404).json({ error: "Worker not found" });
@@ -421,6 +559,7 @@ router.post(
 
   const worker = await workers().findOne({
     publicId: parsed.data.publicId,
+    archivedAt: { $exists: false },
   });
   if (!worker) {
     res.status(404).json({ error: "Worker not found" });
@@ -445,20 +584,64 @@ router.post(
     res.status(200).json(CreateDemoTipResponse.parse(tipDto(existing, worker)));
     return;
   }
-  const tip: TipRecord = {
-    id: await nextId("sanad_tips"),
-    reference: randomUUID(),
-    workerId: worker.id,
-    amountFils: parsed.data.amountFils,
-    rating,
-    message,
-    customerName,
-    idempotencyKey,
-    status: "demo_completed",
-    createdAt: new Date(),
-  };
+  let created: { tip: TipRecord; worker: WorkerRecord } | null = null;
   try {
-    await tips().insertOne(tip);
+    created = await withMongoTransaction(async (session) => {
+      const lock = await workers().updateOne(
+        { id: worker.id, archivedAt: { $exists: false } },
+        { $inc: { walletVersion: 1 } },
+        { session },
+      );
+      if (lock.matchedCount !== 1) return null;
+      const currentWorker = await workers().findOne(
+        { id: worker.id, archivedAt: { $exists: false } },
+        { session },
+      );
+      if (!currentWorker) return null;
+      const payoutCompany =
+        currentWorker.companyId != null &&
+        currentWorker.companyStatus === "approved"
+          ? await companies().findOne(
+              {
+                id: currentWorker.companyId,
+                status: "approved",
+              },
+              { session },
+            )
+          : null;
+      const tip: TipRecord = {
+        id: await nextId("sanad_tips", session),
+        reference: randomUUID(),
+        workerId: currentWorker.id,
+        amountFils: parsed.data.amountFils,
+        rating,
+        message,
+        customerName,
+        idempotencyKey,
+        status: "demo_completed",
+        createdAt: new Date(),
+        payoutMethod: payoutCompany ? "company" : "independent",
+        ...(payoutCompany
+          ? {
+              payoutCompanyId: payoutCompany.id,
+              payoutCompanyName: payoutCompany.name,
+            }
+          : {}),
+      };
+      await tips().insertOne(tip, { session });
+      if (tip.payoutMethod === "independent") {
+        await appendWorkerLedgerEvent({
+          workerId: tip.workerId,
+          kind: "tip_credit",
+          amountFils: tip.amountFils,
+          sourceKey: `worker:${tip.workerId}:tip:${tip.id}:credit`,
+          reference: tip.reference,
+          description: "Simulated direct tip credited to independent wallet",
+          session,
+        });
+      }
+      return { tip, worker: currentWorker };
+    });
   } catch (error) {
     if (
       typeof error === "object" &&
@@ -478,8 +661,12 @@ router.post(
     }
     throw error;
   }
+  if (!created) {
+    res.status(404).json({ error: "Worker not found" });
+    return;
+  }
   res.status(201).json(
-    CreateDemoTipResponse.parse(tipDto(tip, worker)),
+    CreateDemoTipResponse.parse(tipDto(created.tip, created.worker)),
   );
   },
 );
@@ -610,51 +797,10 @@ router.get("/settlements", requireAdmin, async (_req, res): Promise<void> => {
 });
 
 router.post("/settlements", requireAdmin, async (_req, res): Promise<void> => {
-  const { month, start, end } = monthRange();
-  const [workerRows, monthTips] = await Promise.all([
-    workers().find({}).toArray(),
-    tips()
-      .find({ createdAt: { $gte: start, $lt: end } })
-      .toArray(),
-  ]);
-  const rows = [];
-  for (const worker of workerRows) {
-    const amountFils = monthTips
-      .filter((tip) => tip.workerId === worker.id)
-      .reduce((total, tip) => total + tip.amountFils, 0);
-    const id = await nextId("sanad_settlements");
-    try {
-      await settlements().updateOne(
-        { workerId: worker.id, month },
-        {
-          $setOnInsert: {
-            id,
-            workerId: worker.id,
-            month,
-            amountFils,
-            status: "pending",
-            updatedAt: new Date(),
-          },
-        },
-        { upsert: true },
-      );
-    } catch (error) {
-      if (
-        typeof error !== "object" ||
-        error === null ||
-        !("code" in error) ||
-        error.code !== 11000
-      ) {
-        throw error;
-      }
-    }
-    const settlement = await settlements().findOne({
-      workerId: worker.id,
-      month,
-    });
-    if (settlement) rows.push(settlementDto(settlement, worker));
-  }
-  res.status(201).json(ListSettlementsResponse.parse(rows));
+  res.status(409).json({
+    error:
+      "Legacy platform-wide settlement previews are disabled. Companies create statements from eligible, company-routed tips in their own workspace.",
+  });
 });
 
 router.patch(
@@ -674,7 +820,7 @@ router.patch(
   }
 
   const updated = await settlements().findOneAndUpdate(
-    { id: params.data.id },
+    { id: params.data.id, companyId: { $exists: false } },
     { $set: { status: body.data.status, updatedAt: new Date() } },
     { returnDocument: "after" },
   );

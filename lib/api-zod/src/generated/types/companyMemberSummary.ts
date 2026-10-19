@@ -11,8 +11,11 @@ import type { Settlement } from './settlement';
 export interface CompanyMemberSummary {
   worker: PublicWorker;
   monthFils: number;
+  previousMonthFils: number;
   totalTips: number;
   /** @nullable */
   averageRating: number | null;
   settlements: Settlement[];
+  /** @nullable */
+  estimatedNextSettlement: Date | null;
 }

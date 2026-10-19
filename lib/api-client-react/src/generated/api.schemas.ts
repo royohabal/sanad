@@ -262,6 +262,10 @@ export const WorkerDashboardSettlementStatus = {
   pending: 'pending',
   processing: 'processing',
   completed: 'completed',
+  approved: 'approved',
+  paid: 'paid',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
 } as const;
 
 export type SettlementStatus = typeof SettlementStatus[keyof typeof SettlementStatus];
@@ -271,6 +275,10 @@ export const SettlementStatus = {
   pending: 'pending',
   processing: 'processing',
   completed: 'completed',
+  approved: 'approved',
+  paid: 'paid',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
 } as const;
 
 export interface Settlement {
@@ -279,8 +287,96 @@ export interface Settlement {
   workerName: string;
   month: string;
   amountFils: number;
+  /** @nullable */
+  companyName?: string | null;
+  /** @nullable */
+  salaryFils?: number | null;
+  /** @nullable */
+  tipsFils?: number | null;
+  /** @nullable */
+  adjustmentsFils?: number | null;
+  /** @nullable */
+  tipCount?: number | null;
+  /** @nullable */
+  periodStart?: string | null;
+  /** @nullable */
+  periodEnd?: string | null;
+  isLegacy?: boolean;
   status: SettlementStatus;
   updatedAt: string;
+}
+
+export type WorkerWalletSummaryPayoutMethod = typeof WorkerWalletSummaryPayoutMethod[keyof typeof WorkerWalletSummaryPayoutMethod];
+
+
+export const WorkerWalletSummaryPayoutMethod = {
+  independent: 'independent',
+  company: 'company',
+} as const;
+
+export interface LegacyCompanyOption {
+  id: number;
+  name: string;
+}
+
+export type DemoPayoutProfileBankName = typeof DemoPayoutProfileBankName[keyof typeof DemoPayoutProfileBankName];
+
+
+export const DemoPayoutProfileBankName = {
+  Kuwait_Demo_Bank: 'Kuwait Demo Bank',
+  SANAD_Sandbox_Bank: 'SANAD Sandbox Bank',
+} as const;
+
+export interface DemoPayoutProfile {
+  bankName: DemoPayoutProfileBankName;
+  accountLabel: string;
+  updatedAt: string;
+}
+
+export type WorkerWithdrawalStatus = typeof WorkerWithdrawalStatus[keyof typeof WorkerWithdrawalStatus];
+
+
+export const WorkerWithdrawalStatus = {
+  pending: 'pending',
+  processing: 'processing',
+  paid: 'paid',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+} as const;
+
+export type WorkerWithdrawalDemoBankName = typeof WorkerWithdrawalDemoBankName[keyof typeof WorkerWithdrawalDemoBankName];
+
+
+export const WorkerWithdrawalDemoBankName = {
+  Kuwait_Demo_Bank: 'Kuwait Demo Bank',
+  SANAD_Sandbox_Bank: 'SANAD Sandbox Bank',
+} as const;
+
+export interface WorkerWithdrawal {
+  id: number;
+  amountFils: number;
+  status: WorkerWithdrawalStatus;
+  demoBankName: WorkerWithdrawalDemoBankName;
+  accountLabel: string;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  paidAt: string | null;
+}
+
+export interface WorkerWalletSummary {
+  availableFils: number;
+  reservedFils: number;
+  independentTipsFils: number;
+  companyTipsFils: number;
+  legacyUnassignedFils: number;
+  minimumWithdrawalFils: number;
+  payoutMethod: WorkerWalletSummaryPayoutMethod;
+  /** @nullable */
+  companyName: string | null;
+  legacyCompanies: LegacyCompanyOption[];
+  demoPayoutProfile: DemoPayoutProfile | null;
+  withdrawals: WorkerWithdrawal[];
 }
 
 export interface WorkerDashboard {
@@ -293,6 +389,162 @@ export interface WorkerDashboard {
   settlements: Settlement[];
   settlementStatus: WorkerDashboardSettlementStatus;
   qrUrl: string;
+  wallet: WorkerWalletSummary;
+  currentMonthIndependentTipsFils: number;
+  currentMonthCompanyTipsFils: number;
+  previousMonthTipsFils: number;
+  /** @nullable */
+  estimatedNextSettlement: string | null;
+}
+
+export type DemoPayoutProfileInputBankName = typeof DemoPayoutProfileInputBankName[keyof typeof DemoPayoutProfileInputBankName];
+
+
+export const DemoPayoutProfileInputBankName = {
+  Kuwait_Demo_Bank: 'Kuwait Demo Bank',
+  SANAD_Sandbox_Bank: 'SANAD Sandbox Bank',
+} as const;
+
+export interface DemoPayoutProfileInput {
+  bankName: DemoPayoutProfileInputBankName;
+  /**
+     * @minLength 2
+     * @maxLength 40
+     */
+  accountLabel: string;
+}
+
+export interface DemoPayoutProfileResponse {
+  demoPayoutProfile: DemoPayoutProfile;
+}
+
+export type WorkerWalletTransactionKind = typeof WorkerWalletTransactionKind[keyof typeof WorkerWalletTransactionKind];
+
+
+export const WorkerWalletTransactionKind = {
+  tip_credit: 'tip_credit',
+  withdrawal_requested: 'withdrawal_requested',
+  withdrawal_processing: 'withdrawal_processing',
+  withdrawal_paid: 'withdrawal_paid',
+  withdrawal_released: 'withdrawal_released',
+} as const;
+
+export interface WorkerWalletTransaction {
+  id: number;
+  kind: WorkerWalletTransactionKind;
+  amountFils: number;
+  reference: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface WorkerWalletTransactionsPage {
+  items: WorkerWalletTransaction[];
+  page: number;
+  pageSize: number;
+  total: number;
+  hasMore: boolean;
+}
+
+export interface WorkerWithdrawalInput {
+  /** @minimum 1 */
+  amountFils: number;
+  idempotencyKey: string;
+}
+
+export type LegacyTipRouteInputPayoutMethod = typeof LegacyTipRouteInputPayoutMethod[keyof typeof LegacyTipRouteInputPayoutMethod];
+
+
+export const LegacyTipRouteInputPayoutMethod = {
+  independent: 'independent',
+  company: 'company',
+} as const;
+
+export interface LegacyTipRouteInput {
+  payoutMethod: LegacyTipRouteInputPayoutMethod;
+  /** @minimum 1 */
+  companyId?: number;
+}
+
+export type LegacyTipRouteResponsePayoutMethod = typeof LegacyTipRouteResponsePayoutMethod[keyof typeof LegacyTipRouteResponsePayoutMethod];
+
+
+export const LegacyTipRouteResponsePayoutMethod = {
+  independent: 'independent',
+  company: 'company',
+} as const;
+
+export interface LegacyTipRouteResponse {
+  assignedCount: number;
+  assignedAmountFils: number;
+  payoutMethod: LegacyTipRouteResponsePayoutMethod;
+  /** @nullable */
+  companyId: number | null;
+  /** @nullable */
+  companyName: string | null;
+}
+
+export type AdminWorkerWithdrawal = WorkerWithdrawal & {
+  workerId: number;
+  publicId: string;
+  workerName: string;
+};
+
+export type AdminWorkerWithdrawalStatusInputStatus = typeof AdminWorkerWithdrawalStatusInputStatus[keyof typeof AdminWorkerWithdrawalStatusInputStatus];
+
+
+export const AdminWorkerWithdrawalStatusInputStatus = {
+  processing: 'processing',
+  paid: 'paid',
+  rejected: 'rejected',
+} as const;
+
+export interface AdminWorkerWithdrawalStatusInput {
+  status: AdminWorkerWithdrawalStatusInputStatus;
+}
+
+export interface CompanySettlementCandidate {
+  workerId: number;
+  worker: PublicWorker;
+  month: string;
+  tipsFils: number;
+  tipCount: number;
+}
+
+export interface CompanySettlementLineInput {
+  /** @minimum 1 */
+  workerId: number;
+  /** @minimum 0 */
+  salaryFils: number;
+  /**
+     * @minimum -100000000
+     * @maximum 100000000
+     */
+  adjustmentsFils: number;
+}
+
+export interface CompanySettlementBatchInput {
+  /** @pattern ^[0-9]{4}-(0[1-9]|1[0-2])$ */
+  month: string;
+  /**
+     * @minItems 1
+     * @maxItems 200
+     */
+  workers: CompanySettlementLineInput[];
+}
+
+export type CompanySettlementStatusInputStatus = typeof CompanySettlementStatusInputStatus[keyof typeof CompanySettlementStatusInputStatus];
+
+
+export const CompanySettlementStatusInputStatus = {
+  approved: 'approved',
+  processing: 'processing',
+  paid: 'paid',
+  rejected: 'rejected',
+} as const;
+
+export interface CompanySettlementStatusInput {
+  status: CompanySettlementStatusInputStatus;
 }
 
 export interface CompanyWorkerSummary {
@@ -312,10 +564,13 @@ export interface CompanySummary {
 export interface CompanyMemberSummary {
   worker: PublicWorker;
   monthFils: number;
+  previousMonthFils: number;
   totalTips: number;
   /** @nullable */
   averageRating: number | null;
   settlements: Settlement[];
+  /** @nullable */
+  estimatedNextSettlement: string | null;
 }
 
 export interface CompanyDashboard {
@@ -323,7 +578,11 @@ export interface CompanyDashboard {
   workers: CompanyMemberSummary[];
   requests: CompanyWorkerRequest[];
   monthFils: number;
+  previousMonthFils: number;
   totalTips: number;
+  settlements: Settlement[];
+  settlementCandidates: CompanySettlementCandidate[];
+  settlementMonth: string;
 }
 
 export type SettlementStatusInputStatus = typeof SettlementStatusInputStatus[keyof typeof SettlementStatusInputStatus];
@@ -585,6 +844,18 @@ export interface DemoTransferInput {
      */
   amountFils: number;
 }
+
+export type GetWorkerWalletTransactionsParams = {
+/**
+ * @minimum 1
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+pageSize?: number;
+};
 
 export type ListTipsParams = {
 publicId?: string;

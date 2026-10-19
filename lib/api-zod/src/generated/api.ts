@@ -135,11 +135,197 @@ export const GetMyWorkerDashboardResponse = zod.object({
   "workerName": zod.string(),
   "month": zod.string(),
   "amountFils": zod.number().int(),
-  "status": zod.enum(['pending', 'processing', 'completed']),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
   "updatedAt": zod.coerce.date()
 })),
-  "settlementStatus": zod.enum(['pending', 'processing', 'completed']),
-  "qrUrl": zod.string()
+  "settlementStatus": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
+  "qrUrl": zod.string(),
+  "wallet": zod.object({
+  "availableFils": zod.number().int(),
+  "reservedFils": zod.number().int(),
+  "independentTipsFils": zod.number().int(),
+  "companyTipsFils": zod.number().int(),
+  "legacyUnassignedFils": zod.number().int(),
+  "minimumWithdrawalFils": zod.number().int(),
+  "payoutMethod": zod.enum(['independent', 'company']),
+  "companyName": zod.string().nullable(),
+  "legacyCompanies": zod.array(zod.object({
+  "id": zod.number().int(),
+  "name": zod.string()
+})),
+  "demoPayoutProfile": zod.union([zod.object({
+  "bankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "withdrawals": zod.array(zod.object({
+  "id": zod.number().int(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'processing', 'paid', 'rejected', 'cancelled']),
+  "demoBankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullable()
+}))
+}),
+  "currentMonthIndependentTipsFils": zod.number().int(),
+  "currentMonthCompanyTipsFils": zod.number().int(),
+  "previousMonthTipsFils": zod.number().int(),
+  "estimatedNextSettlement": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Save non-sensitive demo payout details for the signed-in worker
+ */
+export const updateWorkerDemoPayoutProfileBodyAccountLabelMin = 2;
+export const updateWorkerDemoPayoutProfileBodyAccountLabelMax = 40;
+
+
+
+export const UpdateWorkerDemoPayoutProfileBody = zod.object({
+  "bankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string().min(updateWorkerDemoPayoutProfileBodyAccountLabelMin).max(updateWorkerDemoPayoutProfileBodyAccountLabelMax)
+})
+
+export const UpdateWorkerDemoPayoutProfileResponse = zod.object({
+  "demoPayoutProfile": zod.object({
+  "bankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "updatedAt": zod.coerce.date()
+})
+})
+
+
+/**
+ * @summary Explicitly assign older tips whose original payout method was not recorded
+ */
+
+
+
+export const AssignLegacyWorkerTipsBody = zod.object({
+  "payoutMethod": zod.enum(['independent', 'company']),
+  "companyId": zod.number().int().min(1).optional()
+})
+
+export const AssignLegacyWorkerTipsResponse = zod.object({
+  "assignedCount": zod.number().int(),
+  "assignedAmountFils": zod.number().int(),
+  "payoutMethod": zod.enum(['independent', 'company']),
+  "companyId": zod.number().int().nullable(),
+  "companyName": zod.string().nullable()
+})
+
+
+/**
+ * @summary List the signed-in worker's persistent wallet ledger
+ */
+export const getWorkerWalletTransactionsQueryPageDefault = 1;
+
+export const getWorkerWalletTransactionsQueryPageSizeDefault = 20;
+export const getWorkerWalletTransactionsQueryPageSizeMax = 50;
+
+
+
+export const GetWorkerWalletTransactionsQueryParams = zod.object({
+  "page": zod.coerce.number().int().min(1).default(getWorkerWalletTransactionsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(getWorkerWalletTransactionsQueryPageSizeMax).default(getWorkerWalletTransactionsQueryPageSizeDefault)
+})
+
+export const GetWorkerWalletTransactionsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number().int(),
+  "kind": zod.enum(['tip_credit', 'withdrawal_requested', 'withdrawal_processing', 'withdrawal_paid', 'withdrawal_released']),
+  "amountFils": zod.number().int(),
+  "reference": zod.string(),
+  "description": zod.string(),
+  "createdAt": zod.coerce.date()
+})),
+  "page": zod.number().int(),
+  "pageSize": zod.number().int(),
+  "total": zod.number().int(),
+  "hasMore": zod.boolean()
+})
+
+
+/**
+ * No bank transfer or real payment is initiated.
+ * @summary Request a simulated withdrawal against the worker's available tip balance
+ */
+
+
+
+export const CreateWorkerWithdrawalBody = zod.object({
+  "amountFils": zod.number().int().min(1),
+  "idempotencyKey": zod.string().uuid()
+})
+
+export const CreateWorkerWithdrawalResponse = zod.object({
+  "id": zod.number().int(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'processing', 'paid', 'rejected', 'cancelled']),
+  "demoBankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Cancel the signed-in worker's pending withdrawal request
+ */
+
+
+
+export const CancelWorkerWithdrawalParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const CancelWorkerWithdrawalResponse = zod.object({
+  "id": zod.number().int(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'processing', 'paid', 'rejected', 'cancelled']),
+  "demoBankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * Preserves historical tips and statements; only future tips use the independent route.
+ * @summary End the signed-in worker's current company association
+ */
+export const LeaveWorkerCompanyResponse = zod.object({
+  "worker": zod.union([zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "companyStatus": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "companyRequest": zod.union([zod.object({
+  "id": zod.number().int(),
+  "companyId": zod.number().int(),
+  "companyName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date()
+}),zod.null()])
 })
 
 
@@ -229,6 +415,7 @@ export const GetMyCompanyDashboardResponse = zod.object({
   "createdAt": zod.coerce.date()
 }),
   "monthFils": zod.number().int(),
+  "previousMonthFils": zod.number().int(),
   "totalTips": zod.number().int(),
   "averageRating": zod.number().nullable(),
   "settlements": zod.array(zod.object({
@@ -237,9 +424,18 @@ export const GetMyCompanyDashboardResponse = zod.object({
   "workerName": zod.string(),
   "month": zod.string(),
   "amountFils": zod.number().int(),
-  "status": zod.enum(['pending', 'processing', 'completed']),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
   "updatedAt": zod.coerce.date()
-}))
+})),
+  "estimatedNextSettlement": zod.coerce.date().nullable()
 })),
   "requests": zod.array(zod.object({
   "id": zod.number().int(),
@@ -256,8 +452,171 @@ export const GetMyCompanyDashboardResponse = zod.object({
   "createdAt": zod.coerce.date()
 })),
   "monthFils": zod.number().int(),
-  "totalTips": zod.number().int()
+  "previousMonthFils": zod.number().int(),
+  "totalTips": zod.number().int(),
+  "settlements": zod.array(zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "workerName": zod.string(),
+  "month": zod.string(),
+  "amountFils": zod.number().int(),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
+  "updatedAt": zod.coerce.date()
+})),
+  "settlementCandidates": zod.array(zod.object({
+  "workerId": zod.number().int(),
+  "worker": zod.object({
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),
+  "month": zod.string(),
+  "tipsFils": zod.number().int(),
+  "tipCount": zod.number().int()
+})),
+  "settlementMonth": zod.string()
 })
+
+
+/**
+ * Company tip amounts are calculated from eligible, unsettled tip records; no payroll payment is processed.
+ * @summary Create itemized monthly demo statements for workers in the signed-in company
+ */
+export const createCompanySettlementsBodyMonthRegExp = new RegExp('^[0-9]{4}-(0[1-9]|1[0-2])$');
+
+export const createCompanySettlementsBodyWorkersItemSalaryFilsMin = 0;
+
+export const createCompanySettlementsBodyWorkersItemAdjustmentsFilsMin = -100000000;
+export const createCompanySettlementsBodyWorkersItemAdjustmentsFilsMax = 100000000;
+
+export const createCompanySettlementsBodyWorkersMax = 200;
+
+
+
+export const CreateCompanySettlementsBody = zod.object({
+  "month": zod.string().regex(createCompanySettlementsBodyMonthRegExp),
+  "workers": zod.array(zod.object({
+  "workerId": zod.number().int().min(1),
+  "salaryFils": zod.number().int().min(createCompanySettlementsBodyWorkersItemSalaryFilsMin),
+  "adjustmentsFils": zod.number().int().min(createCompanySettlementsBodyWorkersItemAdjustmentsFilsMin).max(createCompanySettlementsBodyWorkersItemAdjustmentsFilsMax)
+})).min(1).max(createCompanySettlementsBodyWorkersMax)
+})
+
+export const CreateCompanySettlementsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "workerName": zod.string(),
+  "month": zod.string(),
+  "amountFils": zod.number().int(),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
+  "updatedAt": zod.coerce.date()
+})
+export const CreateCompanySettlementsResponse = zod.array(CreateCompanySettlementsResponseItem)
+
+
+/**
+ * Status changes are recorded for demonstration only and do not pay workers.
+ * @summary Review a demo settlement for the signed-in company
+ */
+
+
+
+export const UpdateCompanySettlementParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const UpdateCompanySettlementBody = zod.object({
+  "status": zod.enum(['approved', 'processing', 'paid', 'rejected'])
+})
+
+export const UpdateCompanySettlementResponse = zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "workerName": zod.string(),
+  "month": zod.string(),
+  "amountFils": zod.number().int(),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List worker withdrawal requests for administrators
+ */
+export const ListAdminWorkerWithdrawalsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'processing', 'paid', 'rejected', 'cancelled']),
+  "demoBankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullable()
+}).and(zod.object({
+  "workerId": zod.number().int(),
+  "publicId": zod.string(),
+  "workerName": zod.string()
+}))
+export const ListAdminWorkerWithdrawalsResponse = zod.array(ListAdminWorkerWithdrawalsResponseItem)
+
+
+/**
+ * Only an authorized admin can mark a request paid; this does not move money.
+ * @summary Process a simulated worker withdrawal
+ */
+
+
+
+export const UpdateAdminWorkerWithdrawalParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const UpdateAdminWorkerWithdrawalBody = zod.object({
+  "status": zod.enum(['processing', 'paid', 'rejected'])
+})
+
+export const UpdateAdminWorkerWithdrawalResponse = zod.object({
+  "id": zod.number().int(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'processing', 'paid', 'rejected', 'cancelled']),
+  "demoBankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullable()
+}).and(zod.object({
+  "workerId": zod.number().int(),
+  "publicId": zod.string(),
+  "workerName": zod.string()
+}))
 
 
 /**
@@ -394,7 +753,7 @@ export const GetWorkerByPublicIdResponse = zod.object({
 
 
 /**
- * @summary Remove a demo worker
+ * @summary Archive a demo worker without deleting financial history
  */
 export const DeleteWorkerParams = zod.object({
   "publicId": zod.coerce.string()
@@ -440,11 +799,52 @@ export const GetWorkerDashboardResponse = zod.object({
   "workerName": zod.string(),
   "month": zod.string(),
   "amountFils": zod.number().int(),
-  "status": zod.enum(['pending', 'processing', 'completed']),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
   "updatedAt": zod.coerce.date()
 })),
-  "settlementStatus": zod.enum(['pending', 'processing', 'completed']),
-  "qrUrl": zod.string()
+  "settlementStatus": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
+  "qrUrl": zod.string(),
+  "wallet": zod.object({
+  "availableFils": zod.number().int(),
+  "reservedFils": zod.number().int(),
+  "independentTipsFils": zod.number().int(),
+  "companyTipsFils": zod.number().int(),
+  "legacyUnassignedFils": zod.number().int(),
+  "minimumWithdrawalFils": zod.number().int(),
+  "payoutMethod": zod.enum(['independent', 'company']),
+  "companyName": zod.string().nullable(),
+  "legacyCompanies": zod.array(zod.object({
+  "id": zod.number().int(),
+  "name": zod.string()
+})),
+  "demoPayoutProfile": zod.union([zod.object({
+  "bankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "updatedAt": zod.coerce.date()
+}),zod.null()]),
+  "withdrawals": zod.array(zod.object({
+  "id": zod.number().int(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'processing', 'paid', 'rejected', 'cancelled']),
+  "demoBankName": zod.enum(['Kuwait Demo Bank', 'SANAD Sandbox Bank']),
+  "accountLabel": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "paidAt": zod.coerce.date().nullable()
+}))
+}),
+  "currentMonthIndependentTipsFils": zod.number().int(),
+  "currentMonthCompanyTipsFils": zod.number().int(),
+  "previousMonthTipsFils": zod.number().int(),
+  "estimatedNextSettlement": zod.coerce.date().nullable()
 })
 
 
@@ -558,7 +958,15 @@ export const ListSettlementsResponseItem = zod.object({
   "workerName": zod.string(),
   "month": zod.string(),
   "amountFils": zod.number().int(),
-  "status": zod.enum(['pending', 'processing', 'completed']),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
   "updatedAt": zod.coerce.date()
 })
 export const ListSettlementsResponse = zod.array(ListSettlementsResponseItem)
@@ -573,7 +981,15 @@ export const CreateMonthlySettlementsResponseItem = zod.object({
   "workerName": zod.string(),
   "month": zod.string(),
   "amountFils": zod.number().int(),
-  "status": zod.enum(['pending', 'processing', 'completed']),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
   "updatedAt": zod.coerce.date()
 })
 export const CreateMonthlySettlementsResponse = zod.array(CreateMonthlySettlementsResponseItem)
@@ -596,7 +1012,15 @@ export const UpdateSettlementStatusResponse = zod.object({
   "workerName": zod.string(),
   "month": zod.string(),
   "amountFils": zod.number().int(),
-  "status": zod.enum(['pending', 'processing', 'completed']),
+  "companyName": zod.string().nullish(),
+  "salaryFils": zod.number().int().nullish(),
+  "tipsFils": zod.number().int().nullish(),
+  "adjustmentsFils": zod.number().int().nullish(),
+  "tipCount": zod.number().int().nullish(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "isLegacy": zod.boolean().optional(),
+  "status": zod.enum(['pending', 'processing', 'completed', 'approved', 'paid', 'rejected', 'cancelled']),
   "updatedAt": zod.coerce.date()
 })
 

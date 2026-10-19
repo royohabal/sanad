@@ -15,7 +15,9 @@ export type SequenceName =
   | "sanad_companies"
   | "sanad_worker_company_requests"
   | "sanad_cash_out_requests"
-  | "sanad_demo_transfers";
+  | "sanad_demo_transfers"
+  | "sanad_worker_withdrawals"
+  | "sanad_worker_wallet_ledger";
 export type MongoSession = ClientSession;
 
 interface CounterRecord {
@@ -33,6 +35,19 @@ function databaseName() {
 }
 
 async function ensureIndexes(db: Db) {
+  const settlementCollection = db.collection("sanad_settlements");
+  const existingSettlementIndexes = await settlementCollection.indexes();
+  const oldWorkerMonthIndex = existingSettlementIndexes.find(
+    (index) =>
+      index.unique === true &&
+      index.key.workerId === 1 &&
+      index.key.month === 1 &&
+      index.key.companyId === undefined,
+  );
+  if (oldWorkerMonthIndex?.name) {
+    await settlementCollection.dropIndex(oldWorkerMonthIndex.name);
+  }
+
   await Promise.all([
     db.collection("sanad_children").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_children").createIndex({ publicId: 1 }, { unique: true }),
@@ -57,11 +72,55 @@ async function ensureIndexes(db: Db) {
       { unique: true, sparse: true },
     ),
     db.collection("sanad_tips").createIndex({ workerId: 1, createdAt: -1 }),
+    db.collection("sanad_tips").createIndex({
+      workerId: 1,
+      payoutMethod: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_tips").createIndex({
+      payoutCompanyId: 1,
+      settlementId: 1,
+      createdAt: -1,
+    }),
     db.collection("sanad_settlements").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_settlements").createIndex(
-      { workerId: 1, month: 1 },
+      { workerId: 1, companyId: 1, month: 1 },
+      { unique: true, name: "worker_company_month_unique" },
+    ),
+    db.collection("sanad_settlements").createIndex({
+      companyId: 1,
+      month: -1,
+      updatedAt: -1,
+    }),
+    db.collection("sanad_worker_withdrawals").createIndex(
+      { id: 1 },
       { unique: true },
     ),
+    db.collection("sanad_worker_withdrawals").createIndex(
+      { workerId: 1, idempotencyKey: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_worker_withdrawals").createIndex({
+      workerId: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_worker_withdrawals").createIndex({
+      status: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_worker_wallet_ledger").createIndex(
+      { id: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_worker_wallet_ledger").createIndex(
+      { sourceKey: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_worker_wallet_ledger").createIndex({
+      workerId: 1,
+      createdAt: -1,
+      id: -1,
+    }),
     db.collection("sanad_demo_transfers").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_demo_transfers").createIndex(
       { reference: 1 },

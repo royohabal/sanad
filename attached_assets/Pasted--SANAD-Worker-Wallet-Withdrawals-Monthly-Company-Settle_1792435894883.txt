@@ -1,0 +1,113 @@
+## SANAD — Worker Wallet, Withdrawals & Monthly Company Settlements
+
+Update my existing SANAD (سند) application to support two worker payout methods. Before making changes, inspect the current codebase, MongoDB models, worker dashboards, company features, authentication, and settlement logic. Reuse existing functionality wherever possible. Do not rebuild the application from scratch.
+
+### 1. Independent workers — Withdraw tips to a bank account
+
+For workers who are NOT linked to a company:
+
+- Give each authenticated worker a Wallet section in their worker dashboard.
+- Display their total tips earned, available tip balance, pending withdrawals, completed withdrawals, and tip transaction history.
+- Add a "Link Bank Account" interface where the worker can enter bank details for the prototype. Clearly label these as demo details; do not collect or store real bank credentials or sensitive banking information.
+- Add a "Request Withdrawal" button.
+- Let the worker request a withdrawal up to their available tip balance, subject to any configured minimum withdrawal amount.
+- Validate the amount on the server. Reject zero, negative, invalid, or excessive withdrawal amounts.
+- Record each withdrawal in MongoDB with a unique ID, worker ID, amount, creation date, payout method, and status.
+- Use statuses such as Pending, Processing, Paid, Rejected, and Cancelled, with valid status transitions enforced on the server.
+- Prevent duplicate submissions and prevent workers from withdrawing the same balance twice.
+- Show the worker a clear withdrawal history and the current status of each request.
+
+### 2. Company-linked workers — Monthly tip settlement
+
+For workers who are linked to a company:
+
+- Display their salary separately from their tips.
+- Show their tips earned during the current month, previous months' tips, the current settlement period, and the estimated next settlement date.
+- Add a monthly tip statement showing the individual tips included in that period.
+- At the end of each settlement period, group eligible tips by worker and company and generate a monthly settlement record.
+- Display the base salary, tips included in the settlement, adjustments if applicable, and total estimated payout as separate line items.
+- Example: 250 KWD base salary + 42 KWD tips = 292 KWD estimated total, before any applicable deductions or adjustments.
+- Let authorized company users review settlement records and mark demo settlements as approved, paid, or rejected, following valid status transitions.
+- Workers must be able to see their own settlement statements and statuses, but must not be able to modify company settlements.
+- Do not assume SANAD can directly edit or pay salaries. Explain that the company is responsible for processing the actual combined payroll.
+
+### 3. Switching between independent and company-linked status
+
+- If an independent worker joins a company, preserve all existing tips, withdrawals, and transaction history.
+- Keep tips earned before the change under their original payout arrangement by default.
+- Apply the company monthly settlement method only to eligible future tips, unless the worker explicitly agrees to a different arrangement.
+- Do not silently transfer existing balances or change the payout method.
+- If a worker leaves a company, preserve their records and show any unpaid settlement amount clearly.
+- Prevent a worker from belonging to multiple companies unless the existing application explicitly supports that.
+
+### 4. Database and accounting rules
+
+Inspect the existing MongoDB models and extend them instead of creating duplicate collections unnecessarily.
+
+- Keep an auditable record of every tip, withdrawal request, and monthly settlement.
+- Derive wallet balances from authoritative server-side transaction records; never trust a balance or price sent by the browser.
+- Make balance changes and withdrawal reservation atomic where possible.
+- Ensure a tip cannot be included in more than one settlement or withdrawn and settled twice.
+- Preserve existing tip records, ratings, worker QR identifiers, company records, and historical data.
+- Use KWD consistently, with appropriate decimal precision.
+- Add database indexes and pagination where needed.
+- Do not permanently delete financial history when a worker account is removed.
+
+### 5. Security and authorization
+
+- Use the existing Clerk authentication.
+- Workers can only access their own wallets, bank-account demo settings, withdrawals, tips, and settlement statements.
+- Company users can only access workers and settlements belonging to their authorized company.
+- Only authorized administrators can access platform-wide payout management.
+- Enforce every permission on the server, not only in the frontend.
+- Keep the company-summary endpoint protected by admin authorization.
+- Retain the existing public endpoint rate limits and server-side validation.
+- Do not expose private worker, bank, or company data through public QR pages or API responses.
+
+### 6. Design and user experience
+
+Keep SANAD's existing visual identity:
+- Deep Burgundy: #581C2B
+- Warm Coral: #EF805F
+- Warm Cream: #F5E8D8
+- Dark Wine: #3B1720
+
+Use a clean, modern financial dashboard with clear cards, readable amounts, status badges, transaction history, loading states, empty states, and helpful error messages. Make the experience responsive and consistent with the current SANAD design.
+
+The worker dashboard should clearly show the correct payout method:
+- Independent worker: "Withdraw to Bank"
+- Company-linked worker: "Monthly Company Settlement"
+
+Do not show the wrong payout action for the worker's current arrangement.
+
+### 7. Demo-only money movement
+
+This is a university project prototype.
+
+- Do not add real payment processing, real bank transfers, deposits, or actual salary payments.
+- Every withdrawal and settlement must be clearly labelled as simulated.
+- Do not mark a withdrawal as Paid merely because a worker clicks a button.
+- Only an authorized demo admin should be able to mark a simulated withdrawal as paid.
+- Show a clear notice that no real money is transferred.
+
+### 8. Testing and final report
+
+Add or update tests for:
+- Independent worker withdrawal requests.
+- Insufficient balance and invalid amounts.
+- Duplicate withdrawal submissions.
+- Workers attempting to access another worker's records.
+- Company users attempting to access another company's records.
+- Monthly settlement generation and duplicate prevention.
+- Workers switching between independent and company-linked status.
+- Preservation of historical tips and withdrawals.
+- Unauthorized access to admin and company settlement routes.
+- Persistence after restarting the API.
+
+Run the existing typecheck, API build, web build, and relevant tests.
+
+Before making any destructive database change or modifying the deployment architecture, explain the proposed change and ask for approval.
+
+At the end, report the files changed, database changes, tests performed and results, any remaining limitations, and whether any deployment or environment-variable changes are required. Do not claim that real payouts work.
+
+Implement this in the existing workspace and preserve all unrelated features.

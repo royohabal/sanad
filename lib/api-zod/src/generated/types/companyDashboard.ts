@@ -7,12 +7,18 @@
  */
 import type { CompanyMemberSummary } from './companyMemberSummary';
 import type { CompanyProfile } from './companyProfile';
+import type { CompanySettlementCandidate } from './companySettlementCandidate';
 import type { CompanyWorkerRequest } from './companyWorkerRequest';
+import type { Settlement } from './settlement';
 
 export interface CompanyDashboard {
   company: CompanyProfile;
   workers: CompanyMemberSummary[];
   requests: CompanyWorkerRequest[];
   monthFils: number;
+  previousMonthFils: number;
   totalTips: number;
+  settlements: Settlement[];
+  settlementCandidates: CompanySettlementCandidate[];
+  settlementMonth: string;
 }

@@ -49,6 +49,21 @@ export interface WorkerRecord {
   jobTitle: string;
   company: string;
   createdAt: Date;
+  archivedAt?: Date;
+  walletVersion?: number;
+  demoPayoutProfile?: {
+    bankName: "Kuwait Demo Bank" | "SANAD Sandbox Bank";
+    accountLabel: string;
+    updatedAt: Date;
+  };
+  companyMemberships?: WorkerCompanyMembershipRecord[];
+}
+
+export interface WorkerCompanyMembershipRecord {
+  companyId: number;
+  companyName: string;
+  joinedAt?: Date;
+  leftAt?: Date;
 }
 
 export interface CompanyRecord {
@@ -80,15 +95,74 @@ export interface TipRecord {
   idempotencyKey?: string;
   status: string;
   createdAt: Date;
+  payoutMethod?: "independent" | "company";
+  payoutCompanyId?: number;
+  payoutCompanyName?: string;
+  settlementId?: number;
 }
 
 export interface SettlementRecord {
   id: number;
   workerId: number;
+  companyId?: number;
+  companyName?: string;
   month: string;
   amountFils: number;
+  salaryFils?: number;
+  tipsFils?: number;
+  adjustmentsFils?: number;
+  tipCount?: number;
+  tipIds?: number[];
+  createdByUserId?: string;
+  createdAt?: Date;
+  statusHistory?: Array<{
+    status: string;
+    changedByUserId: string;
+    changedAt: Date;
+  }>;
   status: string;
   updatedAt: Date;
+}
+
+export type WorkerWithdrawalStatus =
+  | "pending"
+  | "processing"
+  | "paid"
+  | "rejected"
+  | "cancelled";
+
+export interface WorkerWithdrawalRecord {
+  id: number;
+  workerId: number;
+  amountFils: number;
+  status: WorkerWithdrawalStatus;
+  idempotencyKey: string;
+  requestedByUserId: string;
+  demoBankName: "Kuwait Demo Bank" | "SANAD Sandbox Bank";
+  accountLabel: string;
+  reviewedByUserId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  paidAt?: Date;
+}
+
+export type WorkerWalletLedgerKind =
+  | "tip_credit"
+  | "withdrawal_requested"
+  | "withdrawal_processing"
+  | "withdrawal_paid"
+  | "withdrawal_released";
+
+export interface WorkerWalletLedgerRecord {
+  id: number;
+  workerId: number;
+  kind: WorkerWalletLedgerKind;
+  amountFils: number;
+  sourceKey: string;
+  reference: string;
+  description: string;
+  status?: WorkerWithdrawalStatus;
+  createdAt: Date;
 }
 
 export interface CashOutRequestRecord {

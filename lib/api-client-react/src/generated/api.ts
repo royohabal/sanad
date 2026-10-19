@@ -21,6 +21,8 @@ import type {
 
 import type {
   AdminOverview,
+  AdminWorkerWithdrawal,
+  AdminWorkerWithdrawalStatusInput,
   AllowanceInput,
   ApprovalInput,
   ApprovalRequest,
@@ -39,15 +41,22 @@ import type {
   CompanyProfile,
   CompanyProfileInput,
   CompanyProfileState,
+  CompanySettlementBatchInput,
+  CompanySettlementStatusInput,
   CompanyStatusUpdate,
   CompanySummary,
   CompanyWorkerRequest,
   CompanyWorkerRequestUpdate,
+  DemoPayoutProfileInput,
+  DemoPayoutProfileResponse,
   DemoTipInput,
   DemoTransfer,
   DemoTransferInput,
+  GetWorkerWalletTransactionsParams,
   GoalContributionInput,
   HealthStatus,
+  LegacyTipRouteInput,
+  LegacyTipRouteResponse,
   ListTipsParams,
   PublicChildRecipient,
   PublicChildTransferInput,
@@ -64,7 +73,10 @@ import type {
   WorkerDashboard,
   WorkerInput,
   WorkerProfileInput,
-  WorkerProfileState
+  WorkerProfileState,
+  WorkerWalletTransactionsPage,
+  WorkerWithdrawal,
+  WorkerWithdrawalInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -565,6 +577,504 @@ export function useGetMyWorkerDashboard<TData = Awaited<ReturnType<typeof getMyW
 
 
 
+export const getUpdateWorkerDemoPayoutProfileUrl = () => {
+
+
+
+
+  return `/api/workers/me/wallet/demo-payout`
+}
+
+/**
+ * @summary Save non-sensitive demo payout details for the signed-in worker
+ */
+export const updateWorkerDemoPayoutProfile = async (demoPayoutProfileInput: DemoPayoutProfileInput, options?: Parameters<typeof customFetch>[1]): Promise<DemoPayoutProfileResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DemoPayoutProfileResponse>(getUpdateWorkerDemoPayoutProfileUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(demoPayoutProfileInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateWorkerDemoPayoutProfileMutationKey = () => ['updateWorkerDemoPayoutProfile'] as const;
+
+export const getUpdateWorkerDemoPayoutProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkerDemoPayoutProfile>>, TError,UpdateWorkerDemoPayoutProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWorkerDemoPayoutProfile>>, TError,UpdateWorkerDemoPayoutProfileMutationVariables, TContext> => {
+
+const mutationKey = getUpdateWorkerDemoPayoutProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWorkerDemoPayoutProfile>>, UpdateWorkerDemoPayoutProfileMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateWorkerDemoPayoutProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWorkerDemoPayoutProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateWorkerDemoPayoutProfile>>>
+    export type UpdateWorkerDemoPayoutProfileMutationBody = BodyType<DemoPayoutProfileInput>
+    export type UpdateWorkerDemoPayoutProfileMutationError = ErrorType<void>
+    export type UpdateWorkerDemoPayoutProfileMutationVariables = {data: BodyType<DemoPayoutProfileInput>}
+
+    /**
+ * @summary Save non-sensitive demo payout details for the signed-in worker
+ */
+export const useUpdateWorkerDemoPayoutProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkerDemoPayoutProfile>>, TError,UpdateWorkerDemoPayoutProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateWorkerDemoPayoutProfile>>,
+        TError,
+        UpdateWorkerDemoPayoutProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateWorkerDemoPayoutProfileMutationOptions(options));
+    }
+
+export const getAssignLegacyWorkerTipsUrl = () => {
+
+
+
+
+  return `/api/workers/me/wallet/legacy-tip-route`
+}
+
+/**
+ * @summary Explicitly assign older tips whose original payout method was not recorded
+ */
+export const assignLegacyWorkerTips = async (legacyTipRouteInput: LegacyTipRouteInput, options?: Parameters<typeof customFetch>[1]): Promise<LegacyTipRouteResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LegacyTipRouteResponse>(getAssignLegacyWorkerTipsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(legacyTipRouteInput)
+  }
+);}
+
+
+
+
+
+export const getAssignLegacyWorkerTipsMutationKey = () => ['assignLegacyWorkerTips'] as const;
+
+export const getAssignLegacyWorkerTipsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignLegacyWorkerTips>>, TError,AssignLegacyWorkerTipsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignLegacyWorkerTips>>, TError,AssignLegacyWorkerTipsMutationVariables, TContext> => {
+
+const mutationKey = getAssignLegacyWorkerTipsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignLegacyWorkerTips>>, AssignLegacyWorkerTipsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  assignLegacyWorkerTips(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignLegacyWorkerTipsMutationResult = NonNullable<Awaited<ReturnType<typeof assignLegacyWorkerTips>>>
+    export type AssignLegacyWorkerTipsMutationBody = BodyType<LegacyTipRouteInput>
+    export type AssignLegacyWorkerTipsMutationError = ErrorType<void>
+    export type AssignLegacyWorkerTipsMutationVariables = {data: BodyType<LegacyTipRouteInput>}
+
+    /**
+ * @summary Explicitly assign older tips whose original payout method was not recorded
+ */
+export const useAssignLegacyWorkerTips = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignLegacyWorkerTips>>, TError,AssignLegacyWorkerTipsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignLegacyWorkerTips>>,
+        TError,
+        AssignLegacyWorkerTipsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAssignLegacyWorkerTipsMutationOptions(options));
+    }
+
+export const getGetWorkerWalletTransactionsUrl = (params?: GetWorkerWalletTransactionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/workers/me/wallet/transactions?${stringifiedParams}` : `/api/workers/me/wallet/transactions`
+}
+
+/**
+ * @summary List the signed-in worker's persistent wallet ledger
+ */
+export const getWorkerWalletTransactions = async (params?: GetWorkerWalletTransactionsParams, options?: Parameters<typeof customFetch>[1]): Promise<WorkerWalletTransactionsPage> => {
+
+  return customFetch<WorkerWalletTransactionsPage>(getGetWorkerWalletTransactionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkerWalletTransactionsQueryKey = (params?: GetWorkerWalletTransactionsParams,) => {
+    return [
+    `/api/workers/me/wallet/transactions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetWorkerWalletTransactionsQueryOptions = <TData = Awaited<ReturnType<typeof getWorkerWalletTransactions>>, TError = ErrorType<void>>(params?: GetWorkerWalletTransactionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkerWalletTransactions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkerWalletTransactionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkerWalletTransactions>>> = ({ signal }) => getWorkerWalletTransactions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkerWalletTransactions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkerWalletTransactionsQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkerWalletTransactions>>>
+export type GetWorkerWalletTransactionsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List the signed-in worker's persistent wallet ledger
+ */
+
+export function useGetWorkerWalletTransactions<TData = Awaited<ReturnType<typeof getWorkerWalletTransactions>>, TError = ErrorType<void>>(
+ params?: GetWorkerWalletTransactionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkerWalletTransactions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkerWalletTransactionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateWorkerWithdrawalUrl = () => {
+
+
+
+
+  return `/api/workers/me/withdrawals`
+}
+
+/**
+ * No bank transfer or real payment is initiated.
+ * @summary Request a simulated withdrawal against the worker's available tip balance
+ */
+export const createWorkerWithdrawal = async (workerWithdrawalInput: WorkerWithdrawalInput, options?: Parameters<typeof customFetch>[1]): Promise<WorkerWithdrawal> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WorkerWithdrawal>(getCreateWorkerWithdrawalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workerWithdrawalInput)
+  }
+);}
+
+
+
+
+
+export const getCreateWorkerWithdrawalMutationKey = () => ['createWorkerWithdrawal'] as const;
+
+export const getCreateWorkerWithdrawalMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorkerWithdrawal>>, TError,CreateWorkerWithdrawalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWorkerWithdrawal>>, TError,CreateWorkerWithdrawalMutationVariables, TContext> => {
+
+const mutationKey = getCreateWorkerWithdrawalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWorkerWithdrawal>>, CreateWorkerWithdrawalMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createWorkerWithdrawal(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWorkerWithdrawalMutationResult = NonNullable<Awaited<ReturnType<typeof createWorkerWithdrawal>>>
+    export type CreateWorkerWithdrawalMutationBody = BodyType<WorkerWithdrawalInput>
+    export type CreateWorkerWithdrawalMutationError = ErrorType<void>
+    export type CreateWorkerWithdrawalMutationVariables = {data: BodyType<WorkerWithdrawalInput>}
+
+    /**
+ * @summary Request a simulated withdrawal against the worker's available tip balance
+ */
+export const useCreateWorkerWithdrawal = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorkerWithdrawal>>, TError,CreateWorkerWithdrawalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWorkerWithdrawal>>,
+        TError,
+        CreateWorkerWithdrawalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateWorkerWithdrawalMutationOptions(options));
+    }
+
+export const getCancelWorkerWithdrawalUrl = (id: number,) => {
+
+
+
+
+  return `/api/workers/me/withdrawals/${id}/cancel`
+}
+
+/**
+ * @summary Cancel the signed-in worker's pending withdrawal request
+ */
+export const cancelWorkerWithdrawal = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<WorkerWithdrawal> => {
+
+  return customFetch<WorkerWithdrawal>(getCancelWorkerWithdrawalUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelWorkerWithdrawalMutationKey = () => ['cancelWorkerWithdrawal'] as const;
+
+export const getCancelWorkerWithdrawalMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelWorkerWithdrawal>>, TError,CancelWorkerWithdrawalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelWorkerWithdrawal>>, TError,CancelWorkerWithdrawalMutationVariables, TContext> => {
+
+const mutationKey = getCancelWorkerWithdrawalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelWorkerWithdrawal>>, CancelWorkerWithdrawalMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  cancelWorkerWithdrawal(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelWorkerWithdrawalMutationResult = NonNullable<Awaited<ReturnType<typeof cancelWorkerWithdrawal>>>
+
+    export type CancelWorkerWithdrawalMutationError = ErrorType<void>
+    export type CancelWorkerWithdrawalMutationVariables = {id: number}
+
+    /**
+ * @summary Cancel the signed-in worker's pending withdrawal request
+ */
+export const useCancelWorkerWithdrawal = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelWorkerWithdrawal>>, TError,CancelWorkerWithdrawalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelWorkerWithdrawal>>,
+        TError,
+        CancelWorkerWithdrawalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelWorkerWithdrawalMutationOptions(options));
+    }
+
+export const getLeaveWorkerCompanyUrl = () => {
+
+
+
+
+  return `/api/workers/me/company-exit`
+}
+
+/**
+ * Preserves historical tips and statements; only future tips use the independent route.
+ * @summary End the signed-in worker's current company association
+ */
+export const leaveWorkerCompany = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkerProfileState> => {
+
+  return customFetch<WorkerProfileState>(getLeaveWorkerCompanyUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLeaveWorkerCompanyMutationKey = () => ['leaveWorkerCompany'] as const;
+
+export const getLeaveWorkerCompanyMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveWorkerCompany>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leaveWorkerCompany>>, TError,void, TContext> => {
+
+const mutationKey = getLeaveWorkerCompanyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leaveWorkerCompany>>, void> = () => {
+
+
+          return  leaveWorkerCompany(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeaveWorkerCompanyMutationResult = NonNullable<Awaited<ReturnType<typeof leaveWorkerCompany>>>
+
+    export type LeaveWorkerCompanyMutationError = ErrorType<void>
+
+
+    /**
+ * @summary End the signed-in worker's current company association
+ */
+export const useLeaveWorkerCompany = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leaveWorkerCompany>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof leaveWorkerCompany>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getLeaveWorkerCompanyMutationOptions(options));
+    }
+
 export const getCreateWorkerCompanyRequestUrl = () => {
 
 
@@ -971,6 +1481,352 @@ export function useGetMyCompanyDashboard<TData = Awaited<ReturnType<typeof getMy
 
 
 
+
+export const getCreateCompanySettlementsUrl = () => {
+
+
+
+
+  return `/api/companies/me/settlements`
+}
+
+/**
+ * Company tip amounts are calculated from eligible, unsettled tip records; no payroll payment is processed.
+ * @summary Create itemized monthly demo statements for workers in the signed-in company
+ */
+export const createCompanySettlements = async (companySettlementBatchInput: CompanySettlementBatchInput, options?: Parameters<typeof customFetch>[1]): Promise<Settlement[]> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Settlement[]>(getCreateCompanySettlementsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(companySettlementBatchInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCompanySettlementsMutationKey = () => ['createCompanySettlements'] as const;
+
+export const getCreateCompanySettlementsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompanySettlements>>, TError,CreateCompanySettlementsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCompanySettlements>>, TError,CreateCompanySettlementsMutationVariables, TContext> => {
+
+const mutationKey = getCreateCompanySettlementsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCompanySettlements>>, CreateCompanySettlementsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCompanySettlements(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCompanySettlementsMutationResult = NonNullable<Awaited<ReturnType<typeof createCompanySettlements>>>
+    export type CreateCompanySettlementsMutationBody = BodyType<CompanySettlementBatchInput>
+    export type CreateCompanySettlementsMutationError = ErrorType<void>
+    export type CreateCompanySettlementsMutationVariables = {data: BodyType<CompanySettlementBatchInput>}
+
+    /**
+ * @summary Create itemized monthly demo statements for workers in the signed-in company
+ */
+export const useCreateCompanySettlements = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompanySettlements>>, TError,CreateCompanySettlementsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCompanySettlements>>,
+        TError,
+        CreateCompanySettlementsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCompanySettlementsMutationOptions(options));
+    }
+
+export const getUpdateCompanySettlementUrl = (id: number,) => {
+
+
+
+
+  return `/api/companies/me/settlements/${id}`
+}
+
+/**
+ * Status changes are recorded for demonstration only and do not pay workers.
+ * @summary Review a demo settlement for the signed-in company
+ */
+export const updateCompanySettlement = async (id: number,
+    companySettlementStatusInput: CompanySettlementStatusInput, options?: Parameters<typeof customFetch>[1]): Promise<Settlement> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Settlement>(getUpdateCompanySettlementUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(companySettlementStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCompanySettlementMutationKey = () => ['updateCompanySettlement'] as const;
+
+export const getUpdateCompanySettlementMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCompanySettlement>>, TError,UpdateCompanySettlementMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCompanySettlement>>, TError,UpdateCompanySettlementMutationVariables, TContext> => {
+
+const mutationKey = getUpdateCompanySettlementMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCompanySettlement>>, UpdateCompanySettlementMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCompanySettlement(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCompanySettlementMutationResult = NonNullable<Awaited<ReturnType<typeof updateCompanySettlement>>>
+    export type UpdateCompanySettlementMutationBody = BodyType<CompanySettlementStatusInput>
+    export type UpdateCompanySettlementMutationError = ErrorType<void>
+    export type UpdateCompanySettlementMutationVariables = {id: number;data: BodyType<CompanySettlementStatusInput>}
+
+    /**
+ * @summary Review a demo settlement for the signed-in company
+ */
+export const useUpdateCompanySettlement = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCompanySettlement>>, TError,UpdateCompanySettlementMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCompanySettlement>>,
+        TError,
+        UpdateCompanySettlementMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateCompanySettlementMutationOptions(options));
+    }
+
+export const getListAdminWorkerWithdrawalsUrl = () => {
+
+
+
+
+  return `/api/admin/worker-withdrawals`
+}
+
+/**
+ * @summary List worker withdrawal requests for administrators
+ */
+export const listAdminWorkerWithdrawals = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminWorkerWithdrawal[]> => {
+
+  return customFetch<AdminWorkerWithdrawal[]>(getListAdminWorkerWithdrawalsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminWorkerWithdrawalsQueryKey = () => {
+    return [
+    `/api/admin/worker-withdrawals`
+    ] as const;
+    }
+
+
+export const getListAdminWorkerWithdrawalsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminWorkerWithdrawals>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminWorkerWithdrawals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminWorkerWithdrawalsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminWorkerWithdrawals>>> = ({ signal }) => listAdminWorkerWithdrawals({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminWorkerWithdrawals>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminWorkerWithdrawalsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminWorkerWithdrawals>>>
+export type ListAdminWorkerWithdrawalsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List worker withdrawal requests for administrators
+ */
+
+export function useListAdminWorkerWithdrawals<TData = Awaited<ReturnType<typeof listAdminWorkerWithdrawals>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminWorkerWithdrawals>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminWorkerWithdrawalsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminWorkerWithdrawalUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/worker-withdrawals/${id}`
+}
+
+/**
+ * Only an authorized admin can mark a request paid; this does not move money.
+ * @summary Process a simulated worker withdrawal
+ */
+export const updateAdminWorkerWithdrawal = async (id: number,
+    adminWorkerWithdrawalStatusInput: AdminWorkerWithdrawalStatusInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminWorkerWithdrawal> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminWorkerWithdrawal>(getUpdateAdminWorkerWithdrawalUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminWorkerWithdrawalStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminWorkerWithdrawalMutationKey = () => ['updateAdminWorkerWithdrawal'] as const;
+
+export const getUpdateAdminWorkerWithdrawalMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminWorkerWithdrawal>>, TError,UpdateAdminWorkerWithdrawalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminWorkerWithdrawal>>, TError,UpdateAdminWorkerWithdrawalMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminWorkerWithdrawalMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminWorkerWithdrawal>>, UpdateAdminWorkerWithdrawalMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminWorkerWithdrawal(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminWorkerWithdrawalMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminWorkerWithdrawal>>>
+    export type UpdateAdminWorkerWithdrawalMutationBody = BodyType<AdminWorkerWithdrawalStatusInput>
+    export type UpdateAdminWorkerWithdrawalMutationError = ErrorType<void>
+    export type UpdateAdminWorkerWithdrawalMutationVariables = {id: number;data: BodyType<AdminWorkerWithdrawalStatusInput>}
+
+    /**
+ * @summary Process a simulated worker withdrawal
+ */
+export const useUpdateAdminWorkerWithdrawal = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminWorkerWithdrawal>>, TError,UpdateAdminWorkerWithdrawalMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminWorkerWithdrawal>>,
+        TError,
+        UpdateAdminWorkerWithdrawalMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminWorkerWithdrawalMutationOptions(options));
+    }
 
 export const getReviewWorkerCompanyRequestUrl = (id: number,) => {
 
@@ -1478,7 +2334,7 @@ export const getDeleteWorkerUrl = (publicId: string,) => {
 }
 
 /**
- * @summary Remove a demo worker
+ * @summary Archive a demo worker without deleting financial history
  */
 export const deleteWorker = async (publicId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
 
@@ -1530,7 +2386,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteWorkerMutationVariables = {publicId: string}
 
     /**
- * @summary Remove a demo worker
+ * @summary Archive a demo worker without deleting financial history
  */
 export const useDeleteWorker = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWorker>>, TError,DeleteWorkerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
