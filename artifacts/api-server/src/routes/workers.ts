@@ -1,10 +1,12 @@
-import { and, desc, eq, gte, lt } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { db } from "@workspace/db";
 import {
-  sanadSettlementsTable,
-  sanadTipsTable,
-  sanadWorkersTable,
+  getMongoDb,
+  nextId,
+  withMongoTransaction,
+  type SettlementRecord,
+  type TipRecord,
+  type WorkerRecord,
 } from "@workspace/db";
 import {
   CreateDemoTipBody,
@@ -30,6 +32,10 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+const workers = () => getMongoDb().collection<WorkerRecord>("sanad_workers");
+const tips = () => getMongoDb().collection<TipRecord>("sanad_tips");
+const settlements = () =>
+  getMongoDb().collection<SettlementRecord>("sanad_settlements");
 
 function monthRange(date = new Date()) {
   const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -41,14 +47,20 @@ function monthRange(date = new Date()) {
   };
 }
 
-function workerDto(worker: typeof sanadWorkersTable.$inferSelect) {
+function workerDto(worker: WorkerRecord) {
   return {
-    ...worker,
+    id: worker.id,
+    publicId: worker.publicId,
+    name: worker.name,
+    avatarUrl: worker.avatarUrl,
+    workplace: worker.workplace,
+    jobTitle: worker.jobTitle,
+    company: worker.company,
     createdAt: worker.createdAt.toISOString(),
   };
 }
 
-function publicWorkerDto(worker: typeof sanadWorkersTable.$inferSelect) {
+function publicWorkerDto(worker: WorkerRecord) {
   return {
     publicId: worker.publicId,
     name: worker.name,
@@ -66,10 +78,7 @@ function isPublicId(value: string) {
   );
 }
 
-function tipDto(
-  tip: typeof sanadTipsTable.$inferSelect,
-  worker: typeof sanadWorkersTable.$inferSelect,
-) {
+function tipDto(tip: TipRecord, worker: WorkerRecord) {
   return {
     reference: tip.reference,
     publicId: worker.publicId,
@@ -82,12 +91,21 @@ function tipDto(
   };
 }
 
+function settlementDto(settlement: SettlementRecord, worker: WorkerRecord) {
+  return {
+    id: settlement.id,
+    publicId: worker.publicId,
+    workerName: worker.name,
+    month: settlement.month,
+    amountFils: settlement.amountFils,
+    status: settlement.status,
+    updatedAt: settlement.updatedAt.toISOString(),
+  };
+}
+
 router.get("/workers", async (_req, res): Promise<void> => {
-  const workers = await db
-    .select()
-    .from(sanadWorkersTable)
-    .orderBy(desc(sanadWorkersTable.createdAt));
-  res.json(ListWorkersResponse.parse(workers.map(workerDto)));
+  const rows = await workers().find({}).sort({ createdAt: -1 }).toArray();
+  res.json(ListWorkersResponse.parse(rows.map(workerDto)));
 });
 
 router.post("/workers", async (req, res): Promise<void> => {
@@ -97,10 +115,14 @@ router.post("/workers", async (req, res): Promise<void> => {
     return;
   }
 
-  const [worker] = await db
-    .insert(sanadWorkersTable)
-    .values(parsed.data)
-    .returning();
+  const worker: WorkerRecord = {
+    ...parsed.data,
+    avatarUrl: parsed.data.avatarUrl ?? null,
+    id: await nextId("sanad_workers"),
+    publicId: randomUUID(),
+    createdAt: new Date(),
+  };
+  await workers().insertOne(worker);
   res.status(201).json(CreateWorkerResponse.parse(workerDto(worker)));
 });
 
@@ -115,16 +137,16 @@ router.get("/workers/:publicId", async (req, res): Promise<void> => {
     return;
   }
 
-  const [worker] = await db
-    .select()
-    .from(sanadWorkersTable)
-    .where(eq(sanadWorkersTable.publicId, params.data.publicId))
-    .limit(1);
+  const worker = await workers().findOne({
+    publicId: params.data.publicId,
+  });
   if (!worker) {
     res.status(404).json({ error: "Worker not found" });
     return;
   }
-  res.json(GetWorkerByPublicIdResponse.parse(publicWorkerDto(worker)));
+  res.json(
+    GetWorkerByPublicIdResponse.parse(publicWorkerDto(worker)),
+  );
 });
 
 router.delete("/workers/:publicId", async (req, res): Promise<void> => {
@@ -138,11 +160,18 @@ router.delete("/workers/:publicId", async (req, res): Promise<void> => {
     return;
   }
 
-  const [worker] = await db
-    .delete(sanadWorkersTable)
-    .where(eq(sanadWorkersTable.publicId, params.data.publicId))
-    .returning({ id: sanadWorkersTable.id });
-  if (!worker) {
+  const workerId = await withMongoTransaction(async (session) => {
+    const worker = await workers().findOne(
+      { publicId: params.data.publicId },
+      { projection: { id: 1 }, session },
+    );
+    if (!worker) return null;
+    await tips().deleteMany({ workerId: worker.id }, { session });
+    await settlements().deleteMany({ workerId: worker.id }, { session });
+    await workers().deleteOne({ id: worker.id }, { session });
+    return worker.id;
+  });
+  if (workerId == null) {
     res.status(404).json({ error: "Worker not found" });
     return;
   }
@@ -160,67 +189,52 @@ router.get("/workers/:publicId/dashboard", async (req, res): Promise<void> => {
     return;
   }
 
-  const [worker] = await db
-    .select()
-    .from(sanadWorkersTable)
-    .where(eq(sanadWorkersTable.publicId, params.data.publicId))
-    .limit(1);
+  const worker = await workers().findOne({
+    publicId: params.data.publicId,
+  });
   if (!worker) {
     res.status(404).json({ error: "Worker not found" });
     return;
   }
 
-  const tips = await db
-    .select()
-    .from(sanadTipsTable)
-    .where(eq(sanadTipsTable.workerId, worker.id))
-    .orderBy(desc(sanadTipsTable.createdAt));
+  const workerTips = await tips()
+    .find({ workerId: worker.id })
+    .sort({ createdAt: -1 })
+    .toArray();
   const { month, start, end } = monthRange();
-  const monthlyFils = tips
+  const monthlyFils = workerTips
     .filter((tip) => tip.createdAt >= start && tip.createdAt < end)
     .reduce((total, tip) => total + tip.amountFils, 0);
-  const ratings = tips.flatMap((tip) => (tip.rating == null ? [] : [tip.rating]));
-  const [settlement] = await db
-    .select()
-    .from(sanadSettlementsTable)
-    .where(
-      and(
-        eq(sanadSettlementsTable.workerId, worker.id),
-        eq(sanadSettlementsTable.month, month),
-      ),
-    )
-    .limit(1);
-  const settlementHistory = await db
-    .select()
-    .from(sanadSettlementsTable)
-    .where(eq(sanadSettlementsTable.workerId, worker.id))
-    .orderBy(desc(sanadSettlementsTable.month), desc(sanadSettlementsTable.updatedAt));
+  const ratings = workerTips.flatMap((tip) =>
+    tip.rating == null ? [] : [tip.rating],
+  );
+  const settlementHistory = await settlements()
+    .find({ workerId: worker.id })
+    .sort({ month: -1, updatedAt: -1 })
+    .toArray();
+  const settlement = settlementHistory.find((item) => item.month === month);
 
-  const result = {
-    worker: publicWorkerDto(worker),
-    monthlyFils,
-    totalTips: tips.length,
-    averageRating:
-      ratings.length > 0
-        ? Math.round(
-            (ratings.reduce((total, rating) => total + rating, 0) / ratings.length) *
-              10,
-          ) / 10
-        : null,
-    recentTips: tips.slice(0, 8).map((tip) => tipDto(tip, worker)),
-    settlements: settlementHistory.map((item) => ({
-      id: item.id,
-      publicId: worker.publicId,
-      workerName: worker.name,
-      month: item.month,
-      amountFils: item.amountFils,
-      status: item.status,
-      updatedAt: item.updatedAt.toISOString(),
-    })),
-    settlementStatus: settlement?.status ?? "pending",
-    qrUrl: `/tip/${worker.publicId}`,
-  };
-  res.json(GetWorkerDashboardResponse.parse(result));
+  res.json(
+    GetWorkerDashboardResponse.parse({
+      worker: publicWorkerDto(worker),
+      monthlyFils,
+      totalTips: workerTips.length,
+      averageRating:
+        ratings.length > 0
+          ? Math.round(
+              (ratings.reduce((total, rating) => total + rating, 0) /
+                ratings.length) *
+                10,
+            ) / 10
+          : null,
+      recentTips: workerTips.slice(0, 8).map((tip) => tipDto(tip, worker)),
+      settlements: settlementHistory.map((item) =>
+        settlementDto(item, worker),
+      ),
+      settlementStatus: settlement?.status ?? "pending",
+      qrUrl: `/tip/${worker.publicId}`,
+    }),
+  );
 });
 
 router.post("/tips", async (req, res): Promise<void> => {
@@ -234,27 +248,27 @@ router.post("/tips", async (req, res): Promise<void> => {
     return;
   }
 
-  const [worker] = await db
-    .select()
-    .from(sanadWorkersTable)
-    .where(eq(sanadWorkersTable.publicId, parsed.data.publicId))
-    .limit(1);
+  const worker = await workers().findOne({
+    publicId: parsed.data.publicId,
+  });
   if (!worker) {
     res.status(404).json({ error: "Worker not found" });
     return;
   }
-
-  const [tip] = await db
-    .insert(sanadTipsTable)
-    .values({
-      workerId: worker.id,
-      amountFils: parsed.data.amountFils,
-      rating: parsed.data.rating ?? null,
-      message: parsed.data.message?.trim() || null,
-      status: "demo_completed",
-    })
-    .returning();
-  res.status(201).json(CreateDemoTipResponse.parse(tipDto(tip, worker)));
+  const tip: TipRecord = {
+    id: await nextId("sanad_tips"),
+    reference: randomUUID(),
+    workerId: worker.id,
+    amountFils: parsed.data.amountFils,
+    rating: parsed.data.rating ?? null,
+    message: parsed.data.message?.trim() || null,
+    status: "demo_completed",
+    createdAt: new Date(),
+  };
+  await tips().insertOne(tip);
+  res.status(201).json(
+    CreateDemoTipResponse.parse(tipDto(tip, worker)),
+  );
 });
 
 router.get("/tips", async (req, res): Promise<void> => {
@@ -264,18 +278,36 @@ router.get("/tips", async (req, res): Promise<void> => {
     return;
   }
 
-  const rows = await db
-    .select({ tip: sanadTipsTable, worker: sanadWorkersTable })
-    .from(sanadTipsTable)
-    .innerJoin(sanadWorkersTable, eq(sanadTipsTable.workerId, sanadWorkersTable.id))
-    .where(
-      parsed.data.publicId
-        ? eq(sanadWorkersTable.publicId, parsed.data.publicId)
-        : undefined,
-    )
-    .orderBy(desc(sanadTipsTable.createdAt))
-    .limit(100);
-  res.json(ListTipsResponse.parse(rows.map(({ tip, worker }) => tipDto(tip, worker))));
+  const filter: { workerId?: number } = {};
+  if (parsed.data.publicId) {
+    const worker = await workers().findOne(
+      { publicId: parsed.data.publicId },
+      { projection: { id: 1 } },
+    );
+    if (!worker) {
+      res.json(ListTipsResponse.parse([]));
+      return;
+    }
+    filter.workerId = worker.id;
+  }
+  const tipRows = await tips()
+    .find(filter)
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .toArray();
+  const workerIds = [...new Set(tipRows.map((tip) => tip.workerId))];
+  const workerRows = await workers()
+    .find({ id: { $in: workerIds } })
+    .toArray();
+  const workerById = new Map(workerRows.map((worker) => [worker.id, worker]));
+  res.json(
+    ListTipsResponse.parse(
+      tipRows.flatMap((tip) => {
+        const worker = workerById.get(tip.workerId);
+        return worker ? [tipDto(tip, worker)] : [];
+      }),
+    ),
+  );
 });
 
 router.get("/tips/:reference", async (req, res): Promise<void> => {
@@ -285,30 +317,25 @@ router.get("/tips/:reference", async (req, res): Promise<void> => {
     return;
   }
 
-  const [row] = await db
-    .select({ tip: sanadTipsTable, worker: sanadWorkersTable })
-    .from(sanadTipsTable)
-    .innerJoin(sanadWorkersTable, eq(sanadTipsTable.workerId, sanadWorkersTable.id))
-    .where(eq(sanadTipsTable.reference, params.data.reference))
-    .limit(1);
-  if (!row) {
+  const tip = await tips().findOne({ reference: params.data.reference });
+  const worker = tip ? await workers().findOne({ id: tip.workerId }) : null;
+  if (!tip || !worker) {
     res.status(404).json({ error: "Tip receipt not found" });
     return;
   }
-  res.json(GetTipReceiptResponse.parse(tipDto(row.tip, row.worker)));
+  res.json(GetTipReceiptResponse.parse(tipDto(tip, worker)));
 });
 
 router.get("/companies/summary", async (_req, res): Promise<void> => {
   const { start, end } = monthRange();
-  const workers = await db.select().from(sanadWorkersTable);
-  const tips = await db
-    .select()
-    .from(sanadTipsTable)
-    .where(
-      and(gte(sanadTipsTable.createdAt, start), lt(sanadTipsTable.createdAt, end)),
-    );
-  const workerSummaries = workers.map((worker) => {
-    const workerTips = tips.filter((tip) => tip.workerId === worker.id);
+  const [workerRows, tipRows] = await Promise.all([
+    workers().find({}).toArray(),
+    tips()
+      .find({ createdAt: { $gte: start, $lt: end } })
+      .toArray(),
+  ]);
+  const workerSummaries = workerRows.map((worker) => {
+    const workerTips = tipRows.filter((tip) => tip.workerId === worker.id);
     const ratings = workerTips.flatMap((tip) =>
       tip.rating == null ? [] : [tip.rating],
     );
@@ -329,83 +356,84 @@ router.get("/companies/summary", async (_req, res): Promise<void> => {
   res.json(
     GetCompanySummaryResponse.parse({
       workers: workerSummaries,
-      monthFils: workerSummaries.reduce((total, item) => total + item.monthFils, 0),
-      totalTips: workerSummaries.reduce((total, item) => total + item.totalTips, 0),
+      monthFils: workerSummaries.reduce(
+        (total, item) => total + item.monthFils,
+        0,
+      ),
+      totalTips: workerSummaries.reduce(
+        (total, item) => total + item.totalTips,
+        0,
+      ),
     }),
   );
 });
 
 router.get("/settlements", async (_req, res): Promise<void> => {
-  const rows = await db
-    .select({ settlement: sanadSettlementsTable, worker: sanadWorkersTable })
-    .from(sanadSettlementsTable)
-    .innerJoin(
-      sanadWorkersTable,
-      eq(sanadSettlementsTable.workerId, sanadWorkersTable.id),
-    )
-    .orderBy(desc(sanadSettlementsTable.month), desc(sanadSettlementsTable.updatedAt));
-  const output = rows.map(({ settlement, worker }) => ({
-    id: settlement.id,
-    publicId: worker.publicId,
-    workerName: worker.name,
-    month: settlement.month,
-    amountFils: settlement.amountFils,
-    status: settlement.status,
-    updatedAt: settlement.updatedAt.toISOString(),
-  }));
-  res.json(ListSettlementsResponse.parse(output));
+  const settlementRows = await settlements()
+    .find({})
+    .sort({ month: -1, updatedAt: -1 })
+    .toArray();
+  const workerIds = [...new Set(settlementRows.map((row) => row.workerId))];
+  const workerRows = await workers()
+    .find({ id: { $in: workerIds } })
+    .toArray();
+  const workerById = new Map(workerRows.map((worker) => [worker.id, worker]));
+  res.json(
+    ListSettlementsResponse.parse(
+      settlementRows.flatMap((settlement) => {
+        const worker = workerById.get(settlement.workerId);
+        return worker ? [settlementDto(settlement, worker)] : [];
+      }),
+    ),
+  );
 });
 
 router.post("/settlements", async (_req, res): Promise<void> => {
   const { month, start, end } = monthRange();
-  const workers = await db.select().from(sanadWorkersTable);
-  const tips = await db
-    .select()
-    .from(sanadTipsTable)
-    .where(
-      and(gte(sanadTipsTable.createdAt, start), lt(sanadTipsTable.createdAt, end)),
-    );
+  const [workerRows, monthTips] = await Promise.all([
+    workers().find({}).toArray(),
+    tips()
+      .find({ createdAt: { $gte: start, $lt: end } })
+      .toArray(),
+  ]);
   const rows = [];
-  for (const worker of workers) {
-    const amountFils = tips
+  for (const worker of workerRows) {
+    const amountFils = monthTips
       .filter((tip) => tip.workerId === worker.id)
       .reduce((total, tip) => total + tip.amountFils, 0);
-    const [settlement] = await db
-      .insert(sanadSettlementsTable)
-      .values({ workerId: worker.id, month, amountFils, status: "pending" })
-      .onConflictDoNothing({
-        target: [sanadSettlementsTable.workerId, sanadSettlementsTable.month],
-      })
-      .returning();
-    if (settlement) {
-      rows.push({ settlement, worker });
-      continue;
+    const id = await nextId("sanad_settlements");
+    try {
+      await settlements().updateOne(
+        { workerId: worker.id, month },
+        {
+          $setOnInsert: {
+            id,
+            workerId: worker.id,
+            month,
+            amountFils,
+            status: "pending",
+            updatedAt: new Date(),
+          },
+        },
+        { upsert: true },
+      );
+    } catch (error) {
+      if (
+        typeof error !== "object" ||
+        error === null ||
+        !("code" in error) ||
+        error.code !== 11000
+      ) {
+        throw error;
+      }
     }
-    const [existing] = await db
-      .select()
-      .from(sanadSettlementsTable)
-      .where(
-        and(
-          eq(sanadSettlementsTable.workerId, worker.id),
-          eq(sanadSettlementsTable.month, month),
-        ),
-      )
-      .limit(1);
-    if (existing) rows.push({ settlement: existing, worker });
+    const settlement = await settlements().findOne({
+      workerId: worker.id,
+      month,
+    });
+    if (settlement) rows.push(settlementDto(settlement, worker));
   }
-  res.status(201).json(
-    ListSettlementsResponse.parse(
-      rows.map(({ settlement, worker }) => ({
-        id: settlement.id,
-        publicId: worker.publicId,
-        workerName: worker.name,
-        month: settlement.month,
-        amountFils: settlement.amountFils,
-        status: settlement.status,
-        updatedAt: settlement.updatedAt.toISOString(),
-      })),
-    ),
-  );
+  res.status(201).json(ListSettlementsResponse.parse(rows));
 });
 
 router.patch("/settlements/:id", async (req, res): Promise<void> => {
@@ -413,55 +441,52 @@ router.patch("/settlements/:id", async (req, res): Promise<void> => {
   const body = UpdateSettlementStatusBody.safeParse(req.body);
   if (!params.success || !body.success) {
     res.status(400).json({
-      error: params.error?.message ?? body.error?.message ?? "Invalid settlement",
+      error:
+        params.error?.message ??
+        body.error?.message ??
+        "Invalid settlement",
     });
     return;
   }
 
-  const [updated] = await db
-    .update(sanadSettlementsTable)
-    .set({ status: body.data.status })
-    .where(eq(sanadSettlementsTable.id, params.data.id))
-    .returning();
+  const updated = await settlements().findOneAndUpdate(
+    { id: params.data.id },
+    { $set: { status: body.data.status, updatedAt: new Date() } },
+    { returnDocument: "after" },
+  );
   if (!updated) {
     res.status(404).json({ error: "Settlement not found" });
     return;
   }
-
-  const [worker] = await db
-    .select()
-    .from(sanadWorkersTable)
-    .where(eq(sanadWorkersTable.id, updated.workerId))
-    .limit(1);
-  const result = {
-    id: updated.id,
-    publicId: worker.publicId,
-    workerName: worker.name,
-    month: updated.month,
-    amountFils: updated.amountFils,
-    status: updated.status,
-    updatedAt: updated.updatedAt.toISOString(),
-  };
-  res.json(UpdateSettlementStatusResponse.parse(result));
+  const worker = await workers().findOne({ id: updated.workerId });
+  if (!worker) {
+    res.status(404).json({ error: "Settlement worker not found" });
+    return;
+  }
+  res.json(
+    UpdateSettlementStatusResponse.parse(
+      settlementDto(updated, worker),
+    ),
+  );
 });
 
 router.get("/admin/overview", async (_req, res): Promise<void> => {
-  const workers = await db
-    .select()
-    .from(sanadWorkersTable)
-    .orderBy(desc(sanadWorkersTable.createdAt));
-  const rows = await db
-    .select({ tip: sanadTipsTable, worker: sanadWorkersTable })
-    .from(sanadTipsTable)
-    .innerJoin(sanadWorkersTable, eq(sanadTipsTable.workerId, sanadWorkersTable.id))
-    .orderBy(desc(sanadTipsTable.createdAt));
+  const [workerRows, tipRows] = await Promise.all([
+    workers().find({}).sort({ createdAt: -1 }).toArray(),
+    tips().find({}).sort({ createdAt: -1 }).toArray(),
+  ]);
+  const workerById = new Map(workerRows.map((worker) => [worker.id, worker]));
+  const recentTips = tipRows.flatMap((tip) => {
+    const worker = workerById.get(tip.workerId);
+    return worker ? [tipDto(tip, worker)] : [];
+  });
   res.json(
     GetAdminOverviewResponse.parse({
-      workerCount: workers.length,
-      tipCount: rows.length,
-      totalFils: rows.reduce((total, row) => total + row.tip.amountFils, 0),
-      workers: workers.map(workerDto),
-      recentTips: rows.slice(0, 12).map(({ tip, worker }) => tipDto(tip, worker)),
+      workerCount: workerRows.length,
+      tipCount: tipRows.length,
+      totalFils: tipRows.reduce((total, tip) => total + tip.amountFils, 0),
+      workers: workerRows.map(workerDto),
+      recentTips: recentTips.slice(0, 12),
     }),
   );
 });

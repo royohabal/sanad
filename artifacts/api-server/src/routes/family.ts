@@ -1,11 +1,14 @@
-import { desc, eq } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { db } from "@workspace/db";
 import {
-  sanadApprovalRequestsTable,
-  sanadChildActivityTable,
-  sanadChildrenTable,
-  sanadSavingsGoalsTable,
+  getMongoDb,
+  nextId,
+  withMongoTransaction,
+  type ApprovalRequestRecord,
+  type ChildActivityRecord,
+  type ChildRecord,
+  type MongoSession,
+  type SavingsGoalRecord,
 } from "@workspace/db";
 import {
   CreateAllowanceBody,
@@ -39,38 +42,68 @@ import {
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
+const children = () => getMongoDb().collection<ChildRecord>("sanad_children");
+const activities = () =>
+  getMongoDb().collection<ChildActivityRecord>("sanad_child_activity");
+const goals = () =>
+  getMongoDb().collection<SavingsGoalRecord>("sanad_savings_goals");
+const approvals = () =>
+  getMongoDb().collection<ApprovalRequestRecord>("sanad_approval_requests");
 
-function activityDto(activity: typeof sanadChildActivityTable.$inferSelect) {
+function activityDto(activity: ChildActivityRecord) {
   return {
-    ...activity,
+    id: activity.id,
+    childId: activity.childId,
+    title: activity.title,
+    amountFils: activity.amountFils,
+    kind: activity.kind,
     createdAt: activity.createdAt.toISOString(),
   };
 }
 
-function goalDto(goal: typeof sanadSavingsGoalsTable.$inferSelect) {
+function goalDto(goal: SavingsGoalRecord) {
   return {
-    ...goal,
+    id: goal.id,
+    childId: goal.childId,
+    name: goal.name,
+    targetFils: goal.targetFils,
+    savedFils: goal.savedFils,
     createdAt: goal.createdAt.toISOString(),
   };
 }
 
-function approvalDto(
-  approval: typeof sanadApprovalRequestsTable.$inferSelect,
-  childName: string,
-) {
+function approvalDto(approval: ApprovalRequestRecord, childName: string) {
   return {
-    ...approval,
+    id: approval.id,
+    childId: approval.childId,
+    item: approval.item,
+    amountFils: approval.amountFils,
+    status: approval.status,
     childName,
     createdAt: approval.createdAt.toISOString(),
   };
 }
 
-async function getChildBalance(childId: number) {
-  const activity = await db
-    .select({ amountFils: sanadChildActivityTable.amountFils })
-    .from(sanadChildActivityTable)
-    .where(eq(sanadChildActivityTable.childId, childId));
-  return activity.reduce((total, item) => total + item.amountFils, 0);
+function childDto(child: ChildRecord, balanceFils: number) {
+  return {
+    id: child.id,
+    publicId: child.publicId,
+    name: child.name,
+    age: child.age,
+    spendingLimitFils: child.spendingLimitFils,
+    balanceFils,
+    createdAt: child.createdAt.toISOString(),
+  };
+}
+
+async function getChildBalance(childId: number, session?: MongoSession) {
+  const [result] = await activities()
+    .aggregate<{ _id: number | null; balanceFils: number }>([
+      { $match: { childId } },
+      { $group: { _id: null, balanceFils: { $sum: "$amountFils" } } },
+    ], session ? { session } : {})
+    .toArray();
+  return result?.balanceFils ?? 0;
 }
 
 function childFirstName(name: string) {
@@ -84,19 +117,14 @@ router.get("/child-recipients/:publicId", async (req, res): Promise<void> => {
     return;
   }
 
-  const [child] = await db
-    .select({
-      publicId: sanadChildrenTable.publicId,
-      name: sanadChildrenTable.name,
-    })
-    .from(sanadChildrenTable)
-    .where(eq(sanadChildrenTable.publicId, params.data.publicId))
-    .limit(1);
+  const child = await children().findOne(
+    { publicId: params.data.publicId },
+    { projection: { publicId: 1, name: 1 } },
+  );
   if (!child) {
     res.status(404).json({ error: "Child not found" });
     return;
   }
-
   res.json(
     GetPublicChildRecipientResponse.parse({
       publicId: child.publicId,
@@ -119,27 +147,22 @@ router.post(
       return;
     }
 
-    const outcome = await db.transaction(async (tx) => {
-      const [child] = await tx
-        .select({
-          id: sanadChildrenTable.id,
-          name: sanadChildrenTable.name,
-        })
-        .from(sanadChildrenTable)
-        .where(eq(sanadChildrenTable.publicId, params.data.publicId))
-        .for("update")
-        .limit(1);
+    const outcome = await withMongoTransaction(async (session) => {
+      const child = await children().findOne(
+        { publicId: params.data.publicId },
+        { projection: { id: 1, name: 1 }, session },
+      );
       if (!child) return null;
 
-      const [activity] = await tx
-        .insert(sanadChildActivityTable)
-        .values({
-          childId: child.id,
-          title: "Direct QR transfer received",
-          amountFils: body.data.amountFils,
-          kind: "transfer",
-        })
-        .returning();
+      const activity: ChildActivityRecord = {
+        id: await nextId("sanad_child_activity", session),
+        childId: child.id,
+        title: "Direct QR transfer received",
+        amountFils: body.data.amountFils,
+        kind: "transfer",
+        createdAt: new Date(),
+      };
+      await activities().insertOne(activity, { session });
       return {
         firstName: childFirstName(child.name),
         amountFils: activity.amountFils,
@@ -151,31 +174,32 @@ router.post(
       res.status(404).json({ error: "Child not found" });
       return;
     }
-    res
-      .status(201)
-      .json(
-        CreatePublicChildTransferResponse.parse({
-          ...outcome,
-          demoOnly: true,
-        }),
-      );
+    res.status(201).json(
+      CreatePublicChildTransferResponse.parse({
+        ...outcome,
+        demoOnly: true,
+      }),
+    );
   },
 );
 
 router.get("/children", async (_req, res): Promise<void> => {
-  const children = await db
-    .select()
-    .from(sanadChildrenTable)
-    .orderBy(desc(sanadChildrenTable.createdAt));
-  const activity = await db.select().from(sanadChildActivityTable);
-  const response = children.map((child) => ({
-    ...child,
-    balanceFils: activity
-      .filter((item) => item.childId === child.id)
-      .reduce((total, item) => total + item.amountFils, 0),
-    createdAt: child.createdAt.toISOString(),
-  }));
-  res.json(ListChildrenResponse.parse(response));
+  const [childRows, balanceRows] = await Promise.all([
+    children().find({}).sort({ createdAt: -1 }).toArray(),
+    activities()
+      .aggregate<{ _id: number; balanceFils: number }>([
+        { $group: { _id: "$childId", balanceFils: { $sum: "$amountFils" } } },
+      ])
+      .toArray(),
+  ]);
+  const balances = new Map(
+    balanceRows.map((row) => [row._id, row.balanceFils]),
+  );
+  res.json(
+    ListChildrenResponse.parse(
+      childRows.map((child) => childDto(child, balances.get(child.id) ?? 0)),
+    ),
+  );
 });
 
 router.post("/children", async (req, res): Promise<void> => {
@@ -184,17 +208,15 @@ router.post("/children", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [child] = await db
-    .insert(sanadChildrenTable)
-    .values(parsed.data)
-    .returning();
-  res.status(201).json(
-    CreateChildResponse.parse({
-      ...child,
-      balanceFils: 0,
-      createdAt: child.createdAt.toISOString(),
-    }),
-  );
+
+  const child: ChildRecord = {
+    ...parsed.data,
+    id: await nextId("sanad_children"),
+    publicId: randomUUID(),
+    createdAt: new Date(),
+  };
+  await children().insertOne(child);
+  res.status(201).json(CreateChildResponse.parse(childDto(child, 0)));
 });
 
 router.patch("/children/:id", async (req, res): Promise<void> => {
@@ -202,25 +224,27 @@ router.patch("/children/:id", async (req, res): Promise<void> => {
   const body = UpdateChildBody.safeParse(req.body);
   if (!params.success || !body.success) {
     res.status(400).json({
-      error: params.error?.message ?? body.error?.message ?? "Invalid child profile",
+      error:
+        params.error?.message ??
+        body.error?.message ??
+        "Invalid child profile",
     });
     return;
   }
-  const [child] = await db
-    .update(sanadChildrenTable)
-    .set({ spendingLimitFils: body.data.spendingLimitFils })
-    .where(eq(sanadChildrenTable.id, params.data.id))
-    .returning();
+
+  const child = await children().findOneAndUpdate(
+    { id: params.data.id },
+    { $set: { spendingLimitFils: body.data.spendingLimitFils } },
+    { returnDocument: "after" },
+  );
   if (!child) {
     res.status(404).json({ error: "Child profile not found" });
     return;
   }
   res.json(
-    UpdateChildResponse.parse({
-      ...child,
-      balanceFils: await getChildBalance(child.id),
-      createdAt: child.createdAt.toISOString(),
-    }),
+    UpdateChildResponse.parse(
+      childDto(child, await getChildBalance(child.id)),
+    ),
   );
 });
 
@@ -231,44 +255,30 @@ router.get("/children/:id/dashboard", async (req, res): Promise<void> => {
     return;
   }
   const childId = params.data.id;
-  const [child] = await db
-    .select()
-    .from(sanadChildrenTable)
-    .where(eq(sanadChildrenTable.id, childId))
-    .limit(1);
+  const child = await children().findOne({ id: childId });
   if (!child) {
     res.status(404).json({ error: "Child profile not found" });
     return;
   }
 
-  const [activity, goals, approvals] = await Promise.all([
-    db
-      .select()
-      .from(sanadChildActivityTable)
-      .where(eq(sanadChildActivityTable.childId, childId))
-      .orderBy(desc(sanadChildActivityTable.createdAt))
-      .limit(20),
-    db
-      .select()
-      .from(sanadSavingsGoalsTable)
-      .where(eq(sanadSavingsGoalsTable.childId, childId))
-      .orderBy(desc(sanadSavingsGoalsTable.createdAt)),
-    db
-      .select()
-      .from(sanadApprovalRequestsTable)
-      .where(eq(sanadApprovalRequestsTable.childId, childId))
-      .orderBy(desc(sanadApprovalRequestsTable.createdAt)),
+  const [activity, childGoals, childApprovals, balanceFils] = await Promise.all([
+    activities()
+      .find({ childId })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .toArray(),
+    goals().find({ childId }).sort({ createdAt: -1 }).toArray(),
+    approvals().find({ childId }).sort({ createdAt: -1 }).toArray(),
+    getChildBalance(childId),
   ]);
   res.json(
     GetChildDashboardResponse.parse({
-      child: {
-        ...child,
-        balanceFils: await getChildBalance(childId),
-        createdAt: child.createdAt.toISOString(),
-      },
+      child: childDto(child, balanceFils),
       activity: activity.map(activityDto),
-      goals: goals.map(goalDto),
-      approvals: approvals.map((approval) => approvalDto(approval, child.name)),
+      goals: childGoals.map(goalDto),
+      approvals: childApprovals.map((approval) =>
+        approvalDto(approval, child.name),
+      ),
     }),
   );
 });
@@ -282,25 +292,26 @@ router.post("/children/:id/allowances", async (req, res): Promise<void> => {
     });
     return;
   }
-  const [child] = await db
-    .select({ id: sanadChildrenTable.id })
-    .from(sanadChildrenTable)
-    .where(eq(sanadChildrenTable.id, params.data.id))
-    .limit(1);
+  const child = await children().findOne(
+    { id: params.data.id },
+    { projection: { id: 1 } },
+  );
   if (!child) {
     res.status(404).json({ error: "Child profile not found" });
     return;
   }
-  const [activity] = await db
-    .insert(sanadChildActivityTable)
-    .values({
-      childId: params.data.id,
-      title: body.data.kind === "eidiyah" ? "Eidiyah" : "Allowance",
-      amountFils: body.data.amountFils,
-      kind: body.data.kind,
-    })
-    .returning();
-  res.status(201).json(CreateAllowanceResponse.parse(activityDto(activity)));
+  const activity: ChildActivityRecord = {
+    id: await nextId("sanad_child_activity"),
+    childId: params.data.id,
+    title: body.data.kind === "eidiyah" ? "Eidiyah" : "Allowance",
+    amountFils: body.data.amountFils,
+    kind: body.data.kind,
+    createdAt: new Date(),
+  };
+  await activities().insertOne(activity);
+  res.status(201).json(
+    CreateAllowanceResponse.parse(activityDto(activity)),
+  );
 });
 
 router.post("/children/:id/goals", async (req, res): Promise<void> => {
@@ -312,23 +323,23 @@ router.post("/children/:id/goals", async (req, res): Promise<void> => {
     });
     return;
   }
-  const [child] = await db
-    .select({ id: sanadChildrenTable.id })
-    .from(sanadChildrenTable)
-    .where(eq(sanadChildrenTable.id, params.data.id))
-    .limit(1);
+  const child = await children().findOne(
+    { id: params.data.id },
+    { projection: { id: 1 } },
+  );
   if (!child) {
     res.status(404).json({ error: "Child profile not found" });
     return;
   }
-  const [goal] = await db
-    .insert(sanadSavingsGoalsTable)
-    .values({
-      childId: params.data.id,
-      name: body.data.name,
-      targetFils: body.data.targetFils,
-    })
-    .returning();
+  const goal: SavingsGoalRecord = {
+    id: await nextId("sanad_savings_goals"),
+    childId: params.data.id,
+    name: body.data.name,
+    targetFils: body.data.targetFils,
+    savedFils: 0,
+    createdAt: new Date(),
+  };
+  await goals().insertOne(goal);
   res.status(201).json(CreateSavingsGoalResponse.parse(goalDto(goal)));
 });
 
@@ -339,47 +350,50 @@ router.post(
     const body = ContributeToSavingsGoalBody.safeParse(req.body);
     if (!params.success || !body.success) {
       res.status(400).json({
-        error: params.error?.message ?? body.error?.message ?? "Invalid contribution",
+        error:
+          params.error?.message ??
+          body.error?.message ??
+          "Invalid contribution",
       });
       return;
     }
 
-    const childId = params.data.id;
-    const goalId = params.data.goalId;
+    const { id: childId, goalId } = params.data;
     const amountFils = body.data.amountFils;
-    const outcome = await db.transaction(async (tx) => {
-      const [goal] = await tx
-        .select()
-        .from(sanadSavingsGoalsTable)
-        .where(
-          eq(sanadSavingsGoalsTable.id, goalId),
-        )
-        .for("update")
-        .limit(1);
-      if (!goal || goal.childId !== childId) return { error: "not-found" as const };
+    const outcome = await withMongoTransaction(async (session) => {
+      const goal = await goals().findOne(
+        { id: goalId, childId },
+        { session },
+      );
+      if (!goal) return { error: "not-found" as const };
       if (goal.savedFils + amountFils > goal.targetFils) {
         return { error: "goal-limit" as const };
       }
-
-      const activity = await tx
-        .select({ amountFils: sanadChildActivityTable.amountFils })
-        .from(sanadChildActivityTable)
-        .where(eq(sanadChildActivityTable.childId, childId));
-      const balance = activity.reduce((total, item) => total + item.amountFils, 0);
+      const balance = await getChildBalance(childId, session);
       if (balance < amountFils) return { error: "balance" as const };
 
-      await tx.insert(sanadChildActivityTable).values({
-        childId,
-        title: `Saved for ${goal.name}`,
-        amountFils: -amountFils,
-        kind: "goal",
-      });
-      const [updatedGoal] = await tx
-        .update(sanadSavingsGoalsTable)
-        .set({ savedFils: goal.savedFils + amountFils })
-        .where(eq(sanadSavingsGoalsTable.id, goalId))
-        .returning();
-      return { goal: updatedGoal };
+      const updated = await goals().updateOne(
+        { id: goalId, childId, savedFils: goal.savedFils },
+        { $set: { savedFils: goal.savedFils + amountFils } },
+        { session },
+      );
+      if (updated.matchedCount !== 1) {
+        return { error: "goal-limit" as const };
+      }
+      await activities().insertOne(
+        {
+          id: await nextId("sanad_child_activity", session),
+          childId,
+          title: `Saved for ${goal.name}`,
+          amountFils: -amountFils,
+          kind: "goal",
+          createdAt: new Date(),
+        },
+        { session },
+      );
+      return {
+        goal: { ...goal, savedFils: goal.savedFils + amountFils },
+      };
     });
 
     if ("error" in outcome) {
@@ -393,7 +407,9 @@ router.post(
       res.status(status).json({ error: message });
       return;
     }
-    res.json(ContributeToSavingsGoalResponse.parse(goalDto(outcome.goal)));
+    res.json(
+      ContributeToSavingsGoalResponse.parse(goalDto(outcome.goal)),
+    );
   },
 );
 
@@ -406,24 +422,28 @@ router.post("/children/:id/approvals", async (req, res): Promise<void> => {
     });
     return;
   }
-  const [child] = await db
-    .select()
-    .from(sanadChildrenTable)
-    .where(eq(sanadChildrenTable.id, params.data.id))
-    .limit(1);
+  const child = await children().findOne(
+    { id: params.data.id },
+    { projection: { id: 1, name: 1 } },
+  );
   if (!child) {
     res.status(404).json({ error: "Child profile not found" });
     return;
   }
-  const [approval] = await db
-    .insert(sanadApprovalRequestsTable)
-    .values({ childId: child.id, ...body.data })
-    .returning();
-  res
-    .status(201)
-    .json(
-      CreateApprovalRequestResponse.parse(approvalDto(approval, child.name)),
-    );
+  const approval: ApprovalRequestRecord = {
+    id: await nextId("sanad_approval_requests"),
+    childId: child.id,
+    item: body.data.item,
+    amountFils: body.data.amountFils,
+    status: "pending",
+    createdAt: new Date(),
+  };
+  await approvals().insertOne(approval);
+  res.status(201).json(
+    CreateApprovalRequestResponse.parse(
+      approvalDto(approval, child.name),
+    ),
+  );
 });
 
 router.patch("/approvals/:id", async (req, res): Promise<void> => {
@@ -436,45 +456,51 @@ router.patch("/approvals/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const outcome = await db.transaction(async (tx) => {
-    const [approval] = await tx
-      .select()
-      .from(sanadApprovalRequestsTable)
-      .where(eq(sanadApprovalRequestsTable.id, params.data.id))
-      .for("update")
-      .limit(1);
+  const outcome = await withMongoTransaction(async (session) => {
+    const approval = await approvals().findOne(
+      { id: params.data.id },
+      { session },
+    );
     if (!approval) return { error: "not-found" as const };
-    if (approval.status !== "pending") return { error: "already-decided" as const };
-    const [child] = await tx
-      .select()
-      .from(sanadChildrenTable)
-      .where(eq(sanadChildrenTable.id, approval.childId))
-      .for("update")
-      .limit(1);
+    if (approval.status !== "pending") {
+      return { error: "already-decided" as const };
+    }
+    const child = await children().findOne(
+      { id: approval.childId },
+      { session },
+    );
     if (!child) return { error: "not-found" as const };
 
     if (body.data.status === "approved") {
       if (approval.amountFils > child.spendingLimitFils) {
         return { error: "limit" as const };
       }
-      const activity = await tx
-        .select({ amountFils: sanadChildActivityTable.amountFils })
-        .from(sanadChildActivityTable)
-        .where(eq(sanadChildActivityTable.childId, child.id));
-      const balance = activity.reduce((total, item) => total + item.amountFils, 0);
-      if (balance < approval.amountFils) return { error: "balance" as const };
-      await tx.insert(sanadChildActivityTable).values({
-        childId: child.id,
-        title: approval.item,
-        amountFils: -approval.amountFils,
-        kind: "purchase",
-      });
+      const balance = await getChildBalance(child.id, session);
+      if (balance < approval.amountFils) {
+        return { error: "balance" as const };
+      }
     }
-    const [updated] = await tx
-      .update(sanadApprovalRequestsTable)
-      .set({ status: body.data.status })
-      .where(eq(sanadApprovalRequestsTable.id, approval.id))
-      .returning();
+
+    const updated = await approvals().findOneAndUpdate(
+      { id: approval.id, status: "pending" },
+      { $set: { status: body.data.status } },
+      { returnDocument: "after", session },
+    );
+    if (!updated) return { error: "already-decided" as const };
+
+    if (body.data.status === "approved") {
+      await activities().insertOne(
+        {
+          id: await nextId("sanad_child_activity", session),
+          childId: child.id,
+          title: approval.item,
+          amountFils: -approval.amountFils,
+          kind: "purchase",
+          createdAt: new Date(),
+        },
+        { session },
+      );
+    }
     return { approval: updated, childName: child.name };
   });
 

@@ -1,0 +1,1 @@
+- [SANAD database and payments](sanad-database-and-payments.md) — MongoDB is primary; keep PostgreSQL intact and QR payments demo-only until payment setup.
