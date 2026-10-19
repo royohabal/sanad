@@ -6,13 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ApprovalRequest } from './approvalRequest';
+import type { CashOutRequest } from './cashOutRequest';
 import type { Child } from './child';
 import type { ChildActivity } from './childActivity';
 import type { SavingsGoal } from './savingsGoal';
 
 export interface ChildDashboard {
   child: Child;
+  /** @minimum 0 */
+  availableBalanceFils: number;
   activity: ChildActivity[];
   goals: SavingsGoal[];
   approvals: ApprovalRequest[];
+  cashOutRequests: CashOutRequest[];
 }

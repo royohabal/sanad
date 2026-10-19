@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type RequestHandler } from "express";
 import {
   getMongoDb,
   nextId,
@@ -30,12 +30,21 @@ import {
   UpdateSettlementStatusParams,
   UpdateSettlementStatusResponse,
 } from "@workspace/api-zod";
+import { requireAdmin } from "../middleware/authz";
 
 const router: IRouter = Router();
 const workers = () => getMongoDb().collection<WorkerRecord>("sanad_workers");
 const tips = () => getMongoDb().collection<TipRecord>("sanad_tips");
 const settlements = () =>
   getMongoDb().collection<SettlementRecord>("sanad_settlements");
+
+const requireAdminForUnfilteredTips: RequestHandler = (req, res, next) => {
+  if (typeof req.query.publicId === "string" && req.query.publicId.length > 0) {
+    next();
+    return;
+  }
+  requireAdmin(req, res, next);
+};
 
 function monthRange(date = new Date()) {
   const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -108,7 +117,7 @@ router.get("/workers", async (_req, res): Promise<void> => {
   res.json(ListWorkersResponse.parse(rows.map(workerDto)));
 });
 
-router.post("/workers", async (req, res): Promise<void> => {
+router.post("/workers", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateWorkerBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -149,7 +158,10 @@ router.get("/workers/:publicId", async (req, res): Promise<void> => {
   );
 });
 
-router.delete("/workers/:publicId", async (req, res): Promise<void> => {
+router.delete(
+  "/workers/:publicId",
+  requireAdmin,
+  async (req, res): Promise<void> => {
   const params = DeleteWorkerParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -176,7 +188,8 @@ router.delete("/workers/:publicId", async (req, res): Promise<void> => {
     return;
   }
   res.sendStatus(204);
-});
+  },
+);
 
 router.get("/workers/:publicId/dashboard", async (req, res): Promise<void> => {
   const params = GetWorkerDashboardParams.safeParse(req.params);
@@ -271,7 +284,10 @@ router.post("/tips", async (req, res): Promise<void> => {
   );
 });
 
-router.get("/tips", async (req, res): Promise<void> => {
+router.get(
+  "/tips",
+  requireAdminForUnfilteredTips,
+  async (req, res): Promise<void> => {
   const parsed = ListTipsQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -308,7 +324,8 @@ router.get("/tips", async (req, res): Promise<void> => {
       }),
     ),
   );
-});
+  },
+);
 
 router.get("/tips/:reference", async (req, res): Promise<void> => {
   const params = GetTipReceiptParams.safeParse(req.params);
@@ -326,7 +343,9 @@ router.get("/tips/:reference", async (req, res): Promise<void> => {
   res.json(GetTipReceiptResponse.parse(tipDto(tip, worker)));
 });
 
-router.get("/companies/summary", async (_req, res): Promise<void> => {
+router.get(
+  "/companies/summary",
+  async (_req, res): Promise<void> => {
   const { start, end } = monthRange();
   const [workerRows, tipRows] = await Promise.all([
     workers().find({}).toArray(),
@@ -366,9 +385,10 @@ router.get("/companies/summary", async (_req, res): Promise<void> => {
       ),
     }),
   );
-});
+  },
+);
 
-router.get("/settlements", async (_req, res): Promise<void> => {
+router.get("/settlements", requireAdmin, async (_req, res): Promise<void> => {
   const settlementRows = await settlements()
     .find({})
     .sort({ month: -1, updatedAt: -1 })
@@ -388,7 +408,7 @@ router.get("/settlements", async (_req, res): Promise<void> => {
   );
 });
 
-router.post("/settlements", async (_req, res): Promise<void> => {
+router.post("/settlements", requireAdmin, async (_req, res): Promise<void> => {
   const { month, start, end } = monthRange();
   const [workerRows, monthTips] = await Promise.all([
     workers().find({}).toArray(),
@@ -436,7 +456,10 @@ router.post("/settlements", async (_req, res): Promise<void> => {
   res.status(201).json(ListSettlementsResponse.parse(rows));
 });
 
-router.patch("/settlements/:id", async (req, res): Promise<void> => {
+router.patch(
+  "/settlements/:id",
+  requireAdmin,
+  async (req, res): Promise<void> => {
   const params = UpdateSettlementStatusParams.safeParse(req.params);
   const body = UpdateSettlementStatusBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -468,9 +491,13 @@ router.patch("/settlements/:id", async (req, res): Promise<void> => {
       settlementDto(updated, worker),
     ),
   );
-});
+  },
+);
 
-router.get("/admin/overview", async (_req, res): Promise<void> => {
+router.get(
+  "/admin/overview",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
   const [workerRows, tipRows] = await Promise.all([
     workers().find({}).sort({ createdAt: -1 }).toArray(),
     tips().find({}).sort({ createdAt: -1 }).toArray(),
@@ -489,6 +516,7 @@ router.get("/admin/overview", async (_req, res): Promise<void> => {
       recentTips: recentTips.slice(0, 12),
     }),
   );
-});
+  },
+);
 
 export default router;

@@ -18,6 +18,24 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Get the signed-in SANAD account role
+ */
+export const GetSanadSessionResponse = zod.object({
+  "userId": zod.string(),
+  "role": zod.enum(['parent', 'admin'])
+})
+
+
+/**
+ * @summary Claim the initial admin role for the allowlisted signed-in account
+ */
+export const BootstrapFirstAdminResponse = zod.object({
+  "userId": zod.string(),
+  "role": zod.enum(['parent', 'admin'])
+})
+
+
+/**
  * @summary List workers
  */
 export const ListWorkersResponseItem = zod.object({
@@ -145,6 +163,7 @@ export const GetWorkerDashboardResponse = zod.object({
 
 
 /**
+ * A publicId filter returns that worker's simulated tip activity; the unfiltered platform-wide list is admin-only.
  * @summary List simulated tips
  */
 export const ListTipsQueryParams = zod.object({
@@ -319,7 +338,7 @@ export const GetAdminOverviewResponse = zod.object({
 
 
 /**
- * @summary List child profiles in the demo
+ * @summary List child profiles belonging to the signed-in parent
  */
 export const ListChildrenResponseItem = zod.object({
   "id": zod.number().int(),
@@ -433,6 +452,10 @@ export const GetChildDashboardParams = zod.object({
   "id": zod.coerce.number().int()
 })
 
+export const getChildDashboardResponseAvailableBalanceFilsMin = 0;
+
+
+
 export const GetChildDashboardResponse = zod.object({
   "child": zod.object({
   "id": zod.number().int(),
@@ -443,6 +466,7 @@ export const GetChildDashboardResponse = zod.object({
   "balanceFils": zod.number().int(),
   "createdAt": zod.coerce.date()
 }),
+  "availableBalanceFils": zod.number().int().min(getChildDashboardResponseAvailableBalanceFilsMin),
   "activity": zod.array(zod.object({
   "id": zod.number().int(),
   "childId": zod.number().int(),
@@ -467,7 +491,73 @@ export const GetChildDashboardResponse = zod.object({
   "amountFils": zod.number().int(),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "createdAt": zod.coerce.date()
+})),
+  "cashOutRequests": zod.array(zod.object({
+  "id": zod.number().int(),
+  "childId": zod.number().int(),
+  "childName": zod.string(),
+  "amountFils": zod.number().int(),
+  "reason": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'paid']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
 }))
+})
+
+
+/**
+ * Reserves available demo wallet balance. No funds are paid out.
+ * @summary Request a simulated child wallet cash-out
+ */
+export const CreateCashOutRequestParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const createCashOutRequestBodyAmountFilsMax = 5000000;
+
+export const createCashOutRequestBodyReasonMin = 4;
+export const createCashOutRequestBodyReasonMax = 240;
+
+
+
+export const CreateCashOutRequestBody = zod.object({
+  "amountFils": zod.number().int().min(1).max(createCashOutRequestBodyAmountFilsMax),
+  "reason": zod.string().min(createCashOutRequestBodyReasonMin).max(createCashOutRequestBodyReasonMax)
+})
+
+export const CreateCashOutRequestResponse = zod.object({
+  "id": zod.number().int(),
+  "childId": zod.number().int(),
+  "childName": zod.string(),
+  "amountFils": zod.number().int(),
+  "reason": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'paid']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * Approval does not transfer funds. Paid status cannot be set until a real payout is implemented.
+ * @summary Approve or reject a pending cash-out request
+ */
+export const UpdateCashOutRequestParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdateCashOutRequestBody = zod.object({
+  "status": zod.enum(['approved', 'rejected'])
+})
+
+export const UpdateCashOutRequestResponse = zod.object({
+  "id": zod.number().int(),
+  "childId": zod.number().int(),
+  "childName": zod.string(),
+  "amountFils": zod.number().int(),
+  "reason": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'paid']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
 })
 
 

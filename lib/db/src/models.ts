@@ -4,6 +4,8 @@ export interface ChildRecord {
   name: string;
   age: number;
   spendingLimitFils: number;
+  ownerUserId?: string;
+  cashOutReservedFils?: number;
   createdAt: Date;
 }
 
@@ -63,6 +65,31 @@ export interface SettlementRecord {
   amountFils: number;
   status: string;
   updatedAt: Date;
+}
+
+export interface CashOutRequestRecord {
+  id: number;
+  childId: number;
+  amountFils: number;
+  reason: string;
+  status: "pending" | "approved" | "rejected" | "paid";
+  requestedByUserId: string;
+  reviewedByUserId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  paidAt?: Date;
+}
+
+export interface SanadUserRoleRecord {
+  userId: string;
+  role: "admin";
+  createdAt: Date;
+}
+
+export interface AdminBootstrapRecord {
+  _id: "first-admin";
+  userId: string;
+  createdAt: Date;
 }
 
 export interface DemoTransferRecord {

@@ -12,6 +12,7 @@ export type SequenceName =
   | "sanad_workers"
   | "sanad_tips"
   | "sanad_settlements"
+  | "sanad_cash_out_requests"
   | "sanad_demo_transfers";
 export type MongoSession = ClientSession;
 
@@ -33,6 +34,7 @@ async function ensureIndexes(db: Db) {
   await Promise.all([
     db.collection("sanad_children").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_children").createIndex({ publicId: 1 }, { unique: true }),
+    db.collection("sanad_children").createIndex({ ownerUserId: 1, createdAt: -1 }),
     db.collection("sanad_child_activity").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_child_activity").createIndex({ childId: 1, createdAt: -1 }),
     db.collection("sanad_savings_goals").createIndex({ id: 1 }, { unique: true }),
@@ -55,6 +57,22 @@ async function ensureIndexes(db: Db) {
       { unique: true },
     ),
     db.collection("sanad_demo_transfers").createIndex({ createdAt: -1 }),
+    db.collection("sanad_user_roles").createIndex(
+      { userId: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_cash_out_requests").createIndex(
+      { id: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_cash_out_requests").createIndex({
+      childId: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_cash_out_requests").createIndex({
+      childId: 1,
+      status: 1,
+    }),
   ]);
 }
 

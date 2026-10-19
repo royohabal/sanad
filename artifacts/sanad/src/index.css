@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+@layer theme, base, clerk, components, utilities;
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -37,7 +38,7 @@
   html, body { width:100%; height:100%; background:#fff!important; }
   body * { visibility:hidden!important; }
   .print-badge, .print-badge * { visibility:visible!important; }
-  .print-badge { display:flex!important; position:fixed!important; inset:0!important; box-sizing:border-box; width:100mm; height:68mm; align-items:center; justify-content:space-between; gap:6mm; padding:7mm; background:#fffaf4!important; color:#3B1720!important; font-family:Arial,sans-serif; }
+  .print-badge { display:flex!important; position:fixed!important; inset:0!important; box-sizing:border-box; width:100mm; height:68mm; align-items:center; justify-content:space-between; gap:6mm; padding:7mm; background:#fffaf4!important; color:#3B1720!important; font-family:'DM Sans','Noto Sans Arabic',sans-serif; }
   .print-badge b { display:block; color:#581C2B; font-size:17pt; letter-spacing:.08em; }
   .print-badge p { margin:7mm 0 2mm; font-size:15pt; font-weight:700; }
   .print-badge small { display:block; margin-top:2mm; font-size:8pt; }

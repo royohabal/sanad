@@ -28,6 +28,50 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
         "503":
           description: MongoDB is unavailable
+  /auth/me:
+    get:
+      operationId: getSanadSession
+      tags: [sanad]
+      summary: Get the signed-in SANAD account role
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Signed-in account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProfile"
+        "401":
+          description: Sign-in required
+  /auth/bootstrap-admin:
+    post:
+      operationId: bootstrapFirstAdmin
+      tags: [sanad]
+      summary: Claim the initial admin role for the allowlisted signed-in account
+      security:
+        - ClerkSession: []
+      responses:
+        "201":
+          description: Initial admin role assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProfile"
+        "200":
+          description: Account already has the admin role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProfile"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Signed-in account is not the allowlisted first admin
+        "409":
+          description: Initial admin role was already claimed
+        "503":
+          description: Initial admin email is not configured or identity verification failed
   /workers:
     get:
       operationId: listWorkers
@@ -46,6 +90,8 @@ paths:
       operationId: createWorker
       tags: [sanad]
       summary: Register a demo worker
+      security:
+        - ClerkSession: []
       requestBody:
         required: true
         content:
@@ -59,8 +105,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Worker"
+        "401":
+          description: Sign-in required
         "403":
-          description: Worker management is disabled until secure sign-in is configured
+          description: Admin access required
   /workers/{publicId}:
     get:
       operationId: getWorkerByPublicId
@@ -85,6 +133,8 @@ paths:
       operationId: deleteWorker
       tags: [sanad]
       summary: Remove a demo worker
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: publicId
@@ -96,8 +146,10 @@ paths:
           description: Worker removed
         "404":
           description: Worker not found
+        "401":
+          description: Sign-in required
         "403":
-          description: Worker management is disabled until secure sign-in is configured
+          description: Admin access required
   /workers/{publicId}/dashboard:
     get:
       operationId: getWorkerDashboard
@@ -123,6 +175,10 @@ paths:
       operationId: listTips
       tags: [sanad]
       summary: List simulated tips
+      description: A publicId filter returns that worker's simulated tip activity; the unfiltered platform-wide list is admin-only.
+      security:
+        - ClerkSession: []
+        - {}
       parameters:
         - in: query
           name: publicId
@@ -194,6 +250,8 @@ paths:
       operationId: listSettlements
       tags: [sanad]
       summary: List monthly demo settlements
+      security:
+        - ClerkSession: []
       responses:
         "200":
           description: Settlement history
@@ -207,6 +265,8 @@ paths:
       operationId: createMonthlySettlements
       tags: [sanad]
       summary: Create current-month pending settlement records
+      security:
+        - ClerkSession: []
       responses:
         "201":
           description: Created or existing monthly settlements
@@ -216,13 +276,17 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Settlement"
+        "401":
+          description: Sign-in required
         "403":
-          description: Settlement management is disabled until secure sign-in is configured
+          description: Admin access required
   /settlements/{id}:
     patch:
       operationId: updateSettlementStatus
       tags: [sanad]
       summary: Simulate a settlement status update
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: id
@@ -244,13 +308,17 @@ paths:
                 $ref: "#/components/schemas/Settlement"
         "404":
           description: Settlement not found
+        "401":
+          description: Sign-in required
         "403":
-          description: Settlement management is disabled until secure sign-in is configured
+          description: Admin access required
   /admin/overview:
     get:
       operationId: getAdminOverview
       tags: [sanad]
       summary: Get demo platform overview
+      security:
+        - ClerkSession: []
       responses:
         "200":
           description: Admin overview
@@ -258,13 +326,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminOverview"
+        "401":
+          description: Sign-in required
         "403":
-          description: Admin access is disabled until secure sign-in is configured
+          description: Admin access required
   /children:
     get:
       operationId: listChildren
       tags: [sanad]
-      summary: List child profiles in the demo
+      summary: List child profiles belonging to the signed-in parent
+      security:
+        - ClerkSession: []
       responses:
         "200":
           description: Child profiles
@@ -278,6 +350,8 @@ paths:
       operationId: createChild
       tags: [sanad]
       summary: Create a demo child profile
+      security:
+        - ClerkSession: []
       requestBody:
         required: true
         content:
@@ -291,8 +365,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Child"
-        "403":
-          description: Family management is disabled until secure sign-in is configured
+        "401":
+          description: Sign-in required
   /child-recipients/{publicId}:
     get:
       operationId: getPublicChildRecipient
@@ -348,6 +422,8 @@ paths:
       operationId: updateChild
       tags: [sanad]
       summary: Update a demo child's spending limit
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: id
@@ -369,13 +445,17 @@ paths:
                 $ref: "#/components/schemas/Child"
         "404":
           description: Child profile not found
+        "401":
+          description: Sign-in required
         "403":
-          description: Family management is disabled until secure sign-in is configured
+          description: Child profile is not accessible to this account
   /children/{id}/dashboard:
     get:
       operationId: getChildDashboard
       tags: [sanad]
       summary: Get child wallet, activity, goals, and approvals
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: id
@@ -391,13 +471,91 @@ paths:
                 $ref: "#/components/schemas/ChildDashboard"
         "404":
           description: Child not found
+        "401":
+          description: Sign-in required
         "403":
-          description: Family management is disabled until secure sign-in is configured
+          description: Child profile is not accessible to this account
+  /children/{id}/cash-outs:
+    post:
+      operationId: createCashOutRequest
+      tags: [sanad]
+      summary: Request a simulated child wallet cash-out
+      description: Reserves available demo wallet balance. No funds are paid out.
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashOutRequestInput"
+      responses:
+        "201":
+          description: Pending cash-out request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashOutRequest"
+        "400":
+          description: Invalid request
+        "401":
+          description: Sign-in required
+        "403":
+          description: Child profile is not accessible to this account
+        "404":
+          description: Child profile not found
+        "409":
+          description: Insufficient available balance or wallet conflict
+  /cash-outs/{id}:
+    patch:
+      operationId: updateCashOutRequest
+      tags: [sanad]
+      summary: Approve or reject a pending cash-out request
+      description: Approval does not transfer funds. Paid status cannot be set until a real payout is implemented.
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CashOutRequestStatusInput"
+      responses:
+        "200":
+          description: Updated cash-out request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CashOutRequest"
+        "400":
+          description: Invalid decision
+        "401":
+          description: Sign-in required
+        "403":
+          description: Child profile is not accessible to this account
+        "404":
+          description: Cash-out request not found
+        "409":
+          description: Request is no longer pending or wallet reservation conflict
   /children/{id}/allowances:
     post:
       operationId: createAllowance
       tags: [sanad]
       summary: Record a simulated allowance or Eidiyah
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: id
@@ -419,13 +577,17 @@ paths:
                 $ref: "#/components/schemas/ChildActivity"
         "404":
           description: Child not found
+        "401":
+          description: Sign-in required
         "403":
-          description: Family management is disabled until secure sign-in is configured
+          description: Child profile is not accessible to this account
   /children/{id}/goals:
     post:
       operationId: createSavingsGoal
       tags: [sanad]
       summary: Add a savings goal
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: id
@@ -452,6 +614,8 @@ paths:
       operationId: contributeToSavingsGoal
       tags: [sanad]
       summary: Record a simulated goal contribution
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: id
@@ -478,13 +642,17 @@ paths:
                 $ref: "#/components/schemas/SavingsGoal"
         "404":
           description: Child or goal not found
+        "401":
+          description: Sign-in required
         "403":
-          description: Family management is disabled until secure sign-in is configured
+          description: Child profile is not accessible to this account
   /children/{id}/approvals:
     post:
       operationId: createApprovalRequest
       tags: [sanad]
       summary: Submit a demo purchase approval request
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: id
@@ -506,13 +674,17 @@ paths:
                 $ref: "#/components/schemas/ApprovalRequest"
         "404":
           description: Child not found
+        "401":
+          description: Sign-in required
         "403":
-          description: Family management is disabled until secure sign-in is configured
+          description: Child profile is not accessible to this account
   /approvals/{id}:
     patch:
       operationId: updateApprovalRequest
       tags: [sanad]
       summary: Simulate a parent approval decision
+      security:
+        - ClerkSession: []
       parameters:
         - in: path
           name: id
@@ -534,8 +706,10 @@ paths:
                 $ref: "#/components/schemas/ApprovalRequest"
         "404":
           description: Approval request not found
+        "401":
+          description: Sign-in required
         "403":
-          description: Family management is disabled until secure sign-in is configured
+          description: Child profile is not accessible to this account
   /demo-transfers:
     get:
       operationId: listDemoTransfers
@@ -568,7 +742,18 @@ paths:
               schema:
                 $ref: "#/components/schemas/DemoTransfer"
 components:
+  securitySchemes:
+    ClerkSession:
+      type: apiKey
+      in: cookie
+      name: __session
   schemas:
+    AuthProfile:
+      type: object
+      required: [userId, role]
+      properties:
+        userId: { type: string }
+        role: { type: string, enum: [parent, admin] }
     HealthStatus:
       type: object
       properties:
@@ -744,11 +929,24 @@ components:
         amountFils: { type: integer }
         status: { type: string, enum: [pending, approved, rejected] }
         createdAt: { type: string, format: date-time }
+    CashOutRequest:
+      type: object
+      required: [id, childId, childName, amountFils, reason, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer }
+        childId: { type: integer }
+        childName: { type: string }
+        amountFils: { type: integer }
+        reason: { type: string }
+        status: { type: string, enum: [pending, approved, rejected, paid] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     ChildDashboard:
       type: object
-      required: [child, activity, goals, approvals]
+      required: [child, availableBalanceFils, activity, goals, approvals, cashOutRequests]
       properties:
         child: { $ref: "#/components/schemas/Child" }
+        availableBalanceFils: { type: integer, minimum: 0 }
         activity:
           type: array
           items: { $ref: "#/components/schemas/ChildActivity" }
@@ -758,6 +956,9 @@ components:
         approvals:
           type: array
           items: { $ref: "#/components/schemas/ApprovalRequest" }
+        cashOutRequests:
+          type: array
+          items: { $ref: "#/components/schemas/CashOutRequest" }
     PublicChildRecipient:
       type: object
       required: [publicId, firstName]
@@ -801,6 +1002,17 @@ components:
         item: { type: string, minLength: 2, maxLength: 100 }
         amountFils: { type: integer, minimum: 1 }
     ApprovalStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [approved, rejected] }
+    CashOutRequestInput:
+      type: object
+      required: [amountFils, reason]
+      properties:
+        amountFils: { type: integer, minimum: 1, maximum: 5000000 }
+        reason: { type: string, minLength: 4, maxLength: 240 }
+    CashOutRequestStatusInput:
       type: object
       required: [status]
       properties:

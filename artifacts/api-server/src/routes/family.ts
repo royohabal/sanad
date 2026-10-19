@@ -4,6 +4,7 @@ import {
   getMongoDb,
   nextId,
   withMongoTransaction,
+  type CashOutRequestRecord,
   type ApprovalRequestRecord,
   type ChildActivityRecord,
   type ChildRecord,
@@ -17,6 +18,9 @@ import {
   CreateApprovalRequestBody,
   CreateApprovalRequestParams,
   CreateApprovalRequestResponse,
+  CreateCashOutRequestBody,
+  CreateCashOutRequestParams,
+  CreateCashOutRequestResponse,
   CreateChildBody,
   CreateChildResponse,
   CreatePublicChildTransferBody,
@@ -36,10 +40,14 @@ import {
   UpdateApprovalRequestBody,
   UpdateApprovalRequestParams,
   UpdateApprovalRequestResponse,
+  UpdateCashOutRequestBody,
+  UpdateCashOutRequestParams,
+  UpdateCashOutRequestResponse,
   UpdateChildBody,
   UpdateChildParams,
   UpdateChildResponse,
 } from "@workspace/api-zod";
+import { isAdminUser, signedInUserId } from "../middleware/authz";
 
 const router: IRouter = Router();
 const children = () => getMongoDb().collection<ChildRecord>("sanad_children");
@@ -49,6 +57,63 @@ const goals = () =>
   getMongoDb().collection<SavingsGoalRecord>("sanad_savings_goals");
 const approvals = () =>
   getMongoDb().collection<ApprovalRequestRecord>("sanad_approval_requests");
+const cashOutRequests = () =>
+  getMongoDb().collection<CashOutRequestRecord>("sanad_cash_out_requests");
+
+router.use(async (req, res, next) => {
+  if (req.path.startsWith("/child-recipients/")) {
+    next();
+    return;
+  }
+
+  try {
+    const userId = signedInUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Sign in to access family accounts." });
+      return;
+    }
+    if (await isAdminUser(userId)) {
+      next();
+      return;
+    }
+
+    let childId: number | undefined;
+    const childPath = req.path.match(/^\/children\/(\d+)(?:\/|$)/);
+    const approvalPath = req.path.match(/^\/approvals\/(\d+)$/);
+    const cashOutPath = req.path.match(/^\/cash-outs\/(\d+)$/);
+    if (childPath) {
+      childId = Number(childPath[1]);
+    } else if (approvalPath) {
+      childId = (
+        await approvals().findOne(
+          { id: Number(approvalPath[1]) },
+          { projection: { childId: 1 } },
+        )
+      )?.childId;
+    } else if (cashOutPath) {
+      childId = (
+        await cashOutRequests().findOne(
+          { id: Number(cashOutPath[1]) },
+          { projection: { childId: 1 } },
+        )
+      )?.childId;
+    }
+
+    if (childId !== undefined) {
+      const child = await children().findOne(
+        { id: childId },
+        { projection: { ownerUserId: 1 } },
+      );
+      if (child && child.ownerUserId !== userId) {
+        res.status(404).json({ error: "Child profile not found." });
+        return;
+      }
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 function activityDto(activity: ChildActivityRecord) {
   return {
@@ -81,6 +146,22 @@ function approvalDto(approval: ApprovalRequestRecord, childName: string) {
     status: approval.status,
     childName,
     createdAt: approval.createdAt.toISOString(),
+  };
+}
+
+function cashOutRequestDto(
+  request: CashOutRequestRecord,
+  childName: string,
+) {
+  return {
+    id: request.id,
+    childId: request.childId,
+    childName,
+    amountFils: request.amountFils,
+    reason: request.reason,
+    status: request.status,
+    createdAt: request.createdAt.toISOString(),
+    updatedAt: request.updatedAt.toISOString(),
   };
 }
 
@@ -183,14 +264,32 @@ router.post(
   },
 );
 
-router.get("/children", async (_req, res): Promise<void> => {
+router.get("/children", async (req, res): Promise<void> => {
+  const userId = signedInUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Sign in to access family accounts." });
+    return;
+  }
+  const admin = await isAdminUser(userId);
+  const childFilter = admin ? {} : { ownerUserId: userId };
   const [childRows, balanceRows] = await Promise.all([
-    children().find({}).sort({ createdAt: -1 }).toArray(),
-    activities()
-      .aggregate<{ _id: number; balanceFils: number }>([
-        { $group: { _id: "$childId", balanceFils: { $sum: "$amountFils" } } },
-      ])
-      .toArray(),
+    children().find(childFilter).sort({ createdAt: -1 }).toArray(),
+    children()
+      .find(childFilter, { projection: { id: 1 } })
+      .toArray()
+      .then((ownedChildren) =>
+        activities()
+          .aggregate<{ _id: number; balanceFils: number }>([
+            { $match: { childId: { $in: ownedChildren.map((child) => child.id) } } },
+            {
+              $group: {
+                _id: "$childId",
+                balanceFils: { $sum: "$amountFils" },
+              },
+            },
+          ])
+          .toArray(),
+      ),
   ]);
   const balances = new Map(
     balanceRows.map((row) => [row._id, row.balanceFils]),
@@ -209,10 +308,17 @@ router.post("/children", async (req, res): Promise<void> => {
     return;
   }
 
+  const ownerUserId = signedInUserId(req);
+  if (!ownerUserId) {
+    res.status(401).json({ error: "Sign in to create a child profile." });
+    return;
+  }
   const child: ChildRecord = {
     ...parsed.data,
     id: await nextId("sanad_children"),
     publicId: randomUUID(),
+    ownerUserId,
+    cashOutReservedFils: 0,
     createdAt: new Date(),
   };
   await children().insertOne(child);
@@ -271,17 +377,198 @@ router.get("/children/:id/dashboard", async (req, res): Promise<void> => {
     approvals().find({ childId }).sort({ createdAt: -1 }).toArray(),
     getChildBalance(childId),
   ]);
+  const childCashOutRequests = await cashOutRequests()
+    .find({ childId })
+    .sort({ createdAt: -1 })
+    .toArray();
   res.json(
     GetChildDashboardResponse.parse({
       child: childDto(child, balanceFils),
+      availableBalanceFils: Math.max(
+        0,
+        balanceFils - (child.cashOutReservedFils ?? 0),
+      ),
       activity: activity.map(activityDto),
       goals: childGoals.map(goalDto),
       approvals: childApprovals.map((approval) =>
         approvalDto(approval, child.name),
       ),
+      cashOutRequests: childCashOutRequests.map((request) =>
+        cashOutRequestDto(request, child.name),
+      ),
     }),
   );
 });
+
+router.post(
+  "/children/:id/cash-outs",
+  async (req, res): Promise<void> => {
+    const params = CreateCashOutRequestParams.safeParse(req.params);
+    const body = CreateCashOutRequestBody.safeParse(req.body);
+    if (!params.success || !body.success) {
+      res.status(400).json({
+        error:
+          params.error?.message ??
+          body.error?.message ??
+          "Invalid cash-out request.",
+      });
+      return;
+    }
+    const userId = signedInUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Sign in to request a cash-out." });
+      return;
+    }
+
+    const outcome = await withMongoTransaction(async (session) => {
+      const child = await children().findOne(
+        { id: params.data.id },
+        { session },
+      );
+      if (!child) return { error: "not-found" as const };
+
+      const balanceFils = await getChildBalance(child.id, session);
+      const reservedFils = child.cashOutReservedFils ?? 0;
+      if (body.data.amountFils > balanceFils - reservedFils) {
+        return { error: "insufficient-balance" as const };
+      }
+
+      const reserveFilter =
+        child.cashOutReservedFils == null
+          ? { cashOutReservedFils: { $exists: false } }
+          : { cashOutReservedFils: child.cashOutReservedFils };
+      const reservedChild = await children().findOneAndUpdate(
+        { id: child.id, ...reserveFilter },
+        { $inc: { cashOutReservedFils: body.data.amountFils } },
+        { returnDocument: "after", session },
+      );
+      if (!reservedChild) return { error: "conflict" as const };
+
+      const now = new Date();
+      const request: CashOutRequestRecord = {
+        id: await nextId("sanad_cash_out_requests", session),
+        childId: child.id,
+        amountFils: body.data.amountFils,
+        reason: body.data.reason.trim(),
+        status: "pending",
+        requestedByUserId: userId,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await cashOutRequests().insertOne(request, { session });
+      return { request, childName: child.name };
+    });
+
+    if ("error" in outcome) {
+      const status = outcome.error === "not-found" ? 404 : 409;
+      const message =
+        outcome.error === "not-found"
+          ? "Child profile not found."
+          : outcome.error === "insufficient-balance"
+            ? "The request exceeds the child's available wallet balance."
+            : "The wallet changed while the request was being saved. Refresh and try again.";
+      res.status(status).json({ error: message });
+      return;
+    }
+    res.status(201).json(
+      CreateCashOutRequestResponse.parse(
+        cashOutRequestDto(outcome.request, outcome.childName),
+      ),
+    );
+  },
+);
+
+router.patch(
+  "/cash-outs/:id",
+  async (req, res): Promise<void> => {
+    const params = UpdateCashOutRequestParams.safeParse(req.params);
+    const body = UpdateCashOutRequestBody.safeParse(req.body);
+    if (!params.success || !body.success) {
+      res.status(400).json({
+        error:
+          params.error?.message ??
+          body.error?.message ??
+          "Invalid cash-out decision.",
+      });
+      return;
+    }
+    const userId = signedInUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Sign in to update a cash-out request." });
+      return;
+    }
+
+    const outcome = await withMongoTransaction(async (session) => {
+      const request = await cashOutRequests().findOne(
+        { id: params.data.id },
+        { session },
+      );
+      if (!request) return { error: "not-found" as const };
+      if (request.status !== "pending") {
+        return { error: "already-decided" as const };
+      }
+      const child = await children().findOne(
+        { id: request.childId },
+        { session },
+      );
+      if (!child) return { error: "not-found" as const };
+
+      const reservedFils = child.cashOutReservedFils ?? 0;
+      if (reservedFils < request.amountFils) {
+        return { error: "reservation" as const };
+      }
+      if (body.data.status === "approved") {
+        const balanceFils = await getChildBalance(child.id, session);
+        if (balanceFils < reservedFils) {
+          return { error: "insufficient-balance" as const };
+        }
+      } else {
+        const updatedChild = await children().findOneAndUpdate(
+          {
+            id: child.id,
+            cashOutReservedFils: reservedFils,
+          },
+          { $inc: { cashOutReservedFils: -request.amountFils } },
+          { returnDocument: "after", session },
+        );
+        if (!updatedChild) return { error: "conflict" as const };
+      }
+
+      const updatedRequest = await cashOutRequests().findOneAndUpdate(
+        { id: request.id, status: "pending" },
+        {
+          $set: {
+            status: body.data.status,
+            reviewedByUserId: userId,
+            updatedAt: new Date(),
+          },
+        },
+        { returnDocument: "after", session },
+      );
+      if (!updatedRequest) return { error: "already-decided" as const };
+      return { request: updatedRequest, childName: child.name };
+    });
+
+    if ("error" in outcome) {
+      const status = outcome.error === "not-found" ? 404 : 409;
+      const message =
+        outcome.error === "not-found"
+          ? "Cash-out request not found."
+          : outcome.error === "already-decided"
+            ? "This cash-out request has already been decided."
+            : outcome.error === "insufficient-balance"
+              ? "The reserved amount is no longer covered by the wallet balance."
+              : "The wallet reservation could not be updated. Refresh and try again.";
+      res.status(status).json({ error: message });
+      return;
+    }
+    res.json(
+      UpdateCashOutRequestResponse.parse(
+        cashOutRequestDto(outcome.request, outcome.childName),
+      ),
+    );
+  },
+);
 
 router.post("/children/:id/allowances", async (req, res): Promise<void> => {
   const params = CreateAllowanceParams.safeParse(req.params);
@@ -366,11 +653,15 @@ router.post(
         { session },
       );
       if (!goal) return { error: "not-found" as const };
+      const child = await children().findOne({ id: childId }, { session });
+      if (!child) return { error: "not-found" as const };
       if (goal.savedFils + amountFils > goal.targetFils) {
         return { error: "goal-limit" as const };
       }
       const balance = await getChildBalance(childId, session);
-      if (balance < amountFils) return { error: "balance" as const };
+      if (balance - (child.cashOutReservedFils ?? 0) < amountFils) {
+        return { error: "balance" as const };
+      }
 
       const updated = await goals().updateOne(
         { id: goalId, childId, savedFils: goal.savedFils },
@@ -476,7 +767,10 @@ router.patch("/approvals/:id", async (req, res): Promise<void> => {
         return { error: "limit" as const };
       }
       const balance = await getChildBalance(child.id, session);
-      if (balance < approval.amountFils) {
+      if (
+        balance - (child.cashOutReservedFils ?? 0) <
+        approval.amountFils
+      ) {
         return { error: "balance" as const };
       }
     }

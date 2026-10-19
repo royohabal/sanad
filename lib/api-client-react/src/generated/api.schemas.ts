@@ -5,6 +5,19 @@
  * SANAD demo tipping and family-finance prototype API
  * OpenAPI spec version: 0.1.0
  */
+export type AuthProfileRole = typeof AuthProfileRole[keyof typeof AuthProfileRole];
+
+
+export const AuthProfileRole = {
+  parent: 'parent',
+  admin: 'admin',
+} as const;
+
+export interface AuthProfile {
+  userId: string;
+  role: AuthProfileRole;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -258,11 +271,35 @@ export interface ApprovalRequest {
   createdAt: string;
 }
 
+export type CashOutRequestStatus = typeof CashOutRequestStatus[keyof typeof CashOutRequestStatus];
+
+
+export const CashOutRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  paid: 'paid',
+} as const;
+
+export interface CashOutRequest {
+  id: number;
+  childId: number;
+  childName: string;
+  amountFils: number;
+  reason: string;
+  status: CashOutRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ChildDashboard {
   child: Child;
+  /** @minimum 0 */
+  availableBalanceFils: number;
   activity: ChildActivity[];
   goals: SavingsGoal[];
   approvals: ApprovalRequest[];
+  cashOutRequests: CashOutRequest[];
 }
 
 export interface PublicChildRecipient {
@@ -334,6 +371,31 @@ export const ApprovalStatusInputStatus = {
 
 export interface ApprovalStatusInput {
   status: ApprovalStatusInputStatus;
+}
+
+export interface CashOutRequestInput {
+  /**
+     * @minimum 1
+     * @maximum 5000000
+     */
+  amountFils: number;
+  /**
+     * @minLength 4
+     * @maxLength 240
+     */
+  reason: string;
+}
+
+export type CashOutRequestStatusInputStatus = typeof CashOutRequestStatusInputStatus[keyof typeof CashOutRequestStatusInputStatus];
+
+
+export const CashOutRequestStatusInputStatus = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface CashOutRequestStatusInput {
+  status: CashOutRequestStatusInputStatus;
 }
 
 export type DemoTransferStatus = typeof DemoTransferStatus[keyof typeof DemoTransferStatus];

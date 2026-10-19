@@ -25,6 +25,10 @@ import type {
   ApprovalInput,
   ApprovalRequest,
   ApprovalStatusInput,
+  AuthProfile,
+  CashOutRequest,
+  CashOutRequestInput,
+  CashOutRequestStatusInput,
   Child,
   ChildActivity,
   ChildDashboard,
@@ -155,6 +159,157 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getGetSanadSessionUrl = () => {
+
+
+
+
+  return `/api/auth/me`
+}
+
+/**
+ * @summary Get the signed-in SANAD account role
+ */
+export const getSanadSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<AuthProfile> => {
+
+  return customFetch<AuthProfile>(getGetSanadSessionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSanadSessionQueryKey = () => {
+    return [
+    `/api/auth/me`
+    ] as const;
+    }
+
+
+export const getGetSanadSessionQueryOptions = <TData = Awaited<ReturnType<typeof getSanadSession>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSanadSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSanadSessionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSanadSession>>> = ({ signal }) => getSanadSession({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSanadSession>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSanadSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getSanadSession>>>
+export type GetSanadSessionQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the signed-in SANAD account role
+ */
+
+export function useGetSanadSession<TData = Awaited<ReturnType<typeof getSanadSession>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSanadSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSanadSessionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getBootstrapFirstAdminUrl = () => {
+
+
+
+
+  return `/api/auth/bootstrap-admin`
+}
+
+/**
+ * @summary Claim the initial admin role for the allowlisted signed-in account
+ */
+export const bootstrapFirstAdmin = async ( options?: Parameters<typeof customFetch>[1]): Promise<AuthProfile> => {
+
+  return customFetch<AuthProfile>(getBootstrapFirstAdminUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getBootstrapFirstAdminMutationKey = () => ['bootstrapFirstAdmin'] as const;
+
+export const getBootstrapFirstAdminMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bootstrapFirstAdmin>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bootstrapFirstAdmin>>, TError,void, TContext> => {
+
+const mutationKey = getBootstrapFirstAdminMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bootstrapFirstAdmin>>, void> = () => {
+
+
+          return  bootstrapFirstAdmin(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BootstrapFirstAdminMutationResult = NonNullable<Awaited<ReturnType<typeof bootstrapFirstAdmin>>>
+
+    export type BootstrapFirstAdminMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Claim the initial admin role for the allowlisted signed-in account
+ */
+export const useBootstrapFirstAdmin = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bootstrapFirstAdmin>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bootstrapFirstAdmin>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getBootstrapFirstAdminMutationOptions(options));
+    }
 
 export const getListWorkersUrl = () => {
 
@@ -565,6 +720,7 @@ export const getListTipsUrl = (params?: ListTipsParams,) => {
 }
 
 /**
+ * A publicId filter returns that worker's simulated tip activity; the unfiltered platform-wide list is admin-only.
  * @summary List simulated tips
  */
 export const listTips = async (params?: ListTipsParams, options?: Parameters<typeof customFetch>[1]): Promise<Tip[]> => {
@@ -1202,7 +1358,7 @@ export const getListChildrenUrl = () => {
 }
 
 /**
- * @summary List child profiles in the demo
+ * @summary List child profiles belonging to the signed-in parent
  */
 export const listChildren = async ( options?: Parameters<typeof customFetch>[1]): Promise<Child[]> => {
 
@@ -1249,7 +1405,7 @@ export type ListChildrenQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List child profiles in the demo
+ * @summary List child profiles belonging to the signed-in parent
  */
 
 export function useListChildren<TData = Awaited<ReturnType<typeof listChildren>>, TError = ErrorType<unknown>>(
@@ -1689,6 +1845,186 @@ export function useGetChildDashboard<TData = Awaited<ReturnType<typeof getChildD
 
 
 
+
+export const getCreateCashOutRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/children/${id}/cash-outs`
+}
+
+/**
+ * Reserves available demo wallet balance. No funds are paid out.
+ * @summary Request a simulated child wallet cash-out
+ */
+export const createCashOutRequest = async (id: number,
+    cashOutRequestInput: CashOutRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<CashOutRequest> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CashOutRequest>(getCreateCashOutRequestUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(cashOutRequestInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCashOutRequestMutationKey = () => ['createCashOutRequest'] as const;
+
+export const getCreateCashOutRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCashOutRequest>>, TError,CreateCashOutRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCashOutRequest>>, TError,CreateCashOutRequestMutationVariables, TContext> => {
+
+const mutationKey = getCreateCashOutRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCashOutRequest>>, CreateCashOutRequestMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createCashOutRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCashOutRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createCashOutRequest>>>
+    export type CreateCashOutRequestMutationBody = BodyType<CashOutRequestInput>
+    export type CreateCashOutRequestMutationError = ErrorType<void>
+    export type CreateCashOutRequestMutationVariables = {id: number;data: BodyType<CashOutRequestInput>}
+
+    /**
+ * @summary Request a simulated child wallet cash-out
+ */
+export const useCreateCashOutRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCashOutRequest>>, TError,CreateCashOutRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCashOutRequest>>,
+        TError,
+        CreateCashOutRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCashOutRequestMutationOptions(options));
+    }
+
+export const getUpdateCashOutRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/cash-outs/${id}`
+}
+
+/**
+ * Approval does not transfer funds. Paid status cannot be set until a real payout is implemented.
+ * @summary Approve or reject a pending cash-out request
+ */
+export const updateCashOutRequest = async (id: number,
+    cashOutRequestStatusInput: CashOutRequestStatusInput, options?: Parameters<typeof customFetch>[1]): Promise<CashOutRequest> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CashOutRequest>(getUpdateCashOutRequestUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(cashOutRequestStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCashOutRequestMutationKey = () => ['updateCashOutRequest'] as const;
+
+export const getUpdateCashOutRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCashOutRequest>>, TError,UpdateCashOutRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCashOutRequest>>, TError,UpdateCashOutRequestMutationVariables, TContext> => {
+
+const mutationKey = getUpdateCashOutRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCashOutRequest>>, UpdateCashOutRequestMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCashOutRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCashOutRequestMutationResult = NonNullable<Awaited<ReturnType<typeof updateCashOutRequest>>>
+    export type UpdateCashOutRequestMutationBody = BodyType<CashOutRequestStatusInput>
+    export type UpdateCashOutRequestMutationError = ErrorType<void>
+    export type UpdateCashOutRequestMutationVariables = {id: number;data: BodyType<CashOutRequestStatusInput>}
+
+    /**
+ * @summary Approve or reject a pending cash-out request
+ */
+export const useUpdateCashOutRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCashOutRequest>>, TError,UpdateCashOutRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCashOutRequest>>,
+        TError,
+        UpdateCashOutRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateCashOutRequestMutationOptions(options));
+    }
 
 export const getCreateAllowanceUrl = (id: number,) => {
 
