@@ -7,6 +7,12 @@
       "entrypoint": "dist/index.mjs",
       "buildCommand": "pnpm --filter @workspace/api-server run build"
     },
+    "mockup-sandbox": {
+      "root": "artifacts/mockup-sandbox",
+      "framework": "vite",
+      "buildCommand": "PORT=26139 BASE_PATH=/ pnpm --filter @workspace/mockup-sandbox run build",
+      "outputDirectory": "dist"
+    },
     "sanad": {
       "root": "artifacts/sanad",
       "framework": "vite",
