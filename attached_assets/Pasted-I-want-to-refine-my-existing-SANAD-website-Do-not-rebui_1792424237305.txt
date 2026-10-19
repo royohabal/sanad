@@ -1,0 +1,57 @@
+I want to refine my existing SANAD website. **Do not rebuild the project from scratch.** First inspect the existing code, pages, routes, components, and database setup, then make the changes below while preserving the current burgundy, coral, and cream design, Arabic/English support, responsive layout, and working features.
+
+### 1. Make worker tipping the main focus
+SANAD's primary purpose is to make digital tipping easier for service workers in Kuwait.
+
+Update the homepage so the main headline and description communicate this clearly:
+- Brand: SANAD سند
+- Tagline: Scan. Send. Done.
+- Headline: “A little thanks goes a long way.”
+- Supporting text: “Help Kuwait's service workers receive digital tips in seconds. No customer account required.”
+- Add a prominent “Try a Demo Tip” button that opens the existing public tipping demo.
+- Add a clear “For Businesses” button linking to the existing Company page.
+- Explain the simple process: Scan the worker's QR code → Choose a tip amount → Send appreciation.
+- Make the Worker and Company sections the most prominent user journeys on the homepage.
+
+### 2. Keep the Parent and Child pages
+Do not delete the existing family features or routes. Keep the Parent, Child, Individual, Worker, Company, and Admin pages accessible.
+
+Move Family and Individual lower on the homepage or group them under a secondary section such as “Explore More Features.” Do not break their existing functionality.
+
+### 3. Improve the Parent page
+Keep the existing child profiles, child QR codes, allowance and Eidiyah records, spending limits, savings goals, purchase approvals, and activity history.
+
+Add a “Cash-Out Requests” section where parents can:
+- View a child's requested withdrawal amount and reason.
+- Approve or reject a request.
+- See the status of each request, such as Pending, Approved, Rejected, or Paid.
+
+Update the Child page to allow a child to request a cash-out from their available wallet balance, enter an amount, and provide a reason. Display the request status to the child.
+
+Important: approving a cash-out must not automatically claim that money has been transferred. Only mark a request as Paid after a payout has actually been completed. For this prototype, cash-outs are simulated and must be clearly labelled.
+
+### 4. Improve the user experience
+- Make the main homepage call to action obvious.
+- Keep descriptions short and easy to understand.
+- Use consistent cards, spacing, headings, buttons, and icons.
+- Ensure the website works on mobile and desktop.
+- Fix any broken links, confusing labels, or non-working buttons.
+- Show helpful success and error messages after actions.
+- Keep the bilingual interface working in Arabic and English, including correct RTL layout in Arabic.
+
+### 5. Data and security
+Inspect the existing MongoDB integration before changing anything. If MongoDB is configured, preserve it and ensure relevant records persist after refreshing the page. Do not replace database-backed features with temporary in-memory state.
+
+Keep all money movement simulated unless a real payment integration is already configured and verified. Never expose database credentials or secret keys in frontend code.
+
+### 6. Final checks
+Test the homepage, public tipping page, Worker dashboard, Company dashboard, Parent and Child flows, cash-out requests, Individual page, and Admin page.
+
+Do not remove existing working features just to simplify the homepage. After implementation, tell me:
+1. Which files you changed.
+2. Which features work.
+3. Which features are simulated.
+4. Whether data persists in MongoDB.
+5. Anything I need to do manually.
+
+Prioritize a clear, polished digital tipping experience for workers and companies while preserving the rest of my existing SANAD prototype.
