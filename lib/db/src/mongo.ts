@@ -68,6 +68,10 @@ async function ensureIndexes(db: Db) {
       { unique: true },
     ),
     db.collection("sanad_demo_transfers").createIndex({ createdAt: -1 }),
+    db.collection("sanad_public_rate_limits").createIndex(
+      { expiresAt: 1 },
+      { expireAfterSeconds: 0 },
+    ),
     db.collection("sanad_user_roles").createIndex(
       { userId: 1 },
       { unique: true },

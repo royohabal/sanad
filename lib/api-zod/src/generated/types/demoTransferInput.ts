@@ -17,6 +17,9 @@ export interface DemoTransferInput {
      * @maxLength 80
      */
   recipient: string;
-  /** @minimum 1 */
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
   amountFils: number;
 }

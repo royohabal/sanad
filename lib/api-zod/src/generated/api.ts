@@ -525,6 +525,7 @@ export const GetTipReceiptResponse = zod.object({
 
 
 /**
+ * Administrators only; requests from signed-in non-admin users are forbidden.
  * @summary Get platform worker totals for administrators
  */
 export const GetCompanySummaryResponse = zod.object({
@@ -1007,13 +1008,14 @@ export const createDemoTransferBodySenderMax = 80;
 export const createDemoTransferBodyRecipientMin = 2;
 export const createDemoTransferBodyRecipientMax = 80;
 
+export const createDemoTransferBodyAmountFilsMax = 1000000;
 
 
 
 export const CreateDemoTransferBody = zod.object({
   "sender": zod.string().min(createDemoTransferBodySenderMin).max(createDemoTransferBodySenderMax),
   "recipient": zod.string().min(createDemoTransferBodyRecipientMin).max(createDemoTransferBodyRecipientMax),
-  "amountFils": zod.number().int().min(1)
+  "amountFils": zod.number().int().min(1).max(createDemoTransferBodyAmountFilsMax)
 })
 
 export const CreateDemoTransferResponse = zod.object({

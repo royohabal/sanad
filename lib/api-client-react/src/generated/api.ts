@@ -1880,6 +1880,7 @@ export const getGetCompanySummaryUrl = () => {
 }
 
 /**
+ * Administrators only; requests from signed-in non-admin users are forbidden.
  * @summary Get platform worker totals for administrators
  */
 export const getCompanySummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<CompanySummary> => {
@@ -1904,7 +1905,7 @@ export const getGetCompanySummaryQueryKey = () => {
     }
 
 
-export const getGetCompanySummaryQueryOptions = <TData = Awaited<ReturnType<typeof getCompanySummary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompanySummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCompanySummaryQueryOptions = <TData = Awaited<ReturnType<typeof getCompanySummary>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompanySummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1923,14 +1924,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetCompanySummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getCompanySummary>>>
-export type GetCompanySummaryQueryError = ErrorType<unknown>
+export type GetCompanySummaryQueryError = ErrorType<void>
 
 
 /**
  * @summary Get platform worker totals for administrators
  */
 
-export function useGetCompanySummary<TData = Awaited<ReturnType<typeof getCompanySummary>>, TError = ErrorType<unknown>>(
+export function useGetCompanySummary<TData = Awaited<ReturnType<typeof getCompanySummary>>, TError = ErrorType<void>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCompanySummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -3422,7 +3423,7 @@ export const getListDemoTransfersQueryKey = () => {
     }
 
 
-export const getListDemoTransfersQueryOptions = <TData = Awaited<ReturnType<typeof listDemoTransfers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDemoTransfers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListDemoTransfersQueryOptions = <TData = Awaited<ReturnType<typeof listDemoTransfers>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDemoTransfers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -3441,14 +3442,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListDemoTransfersQueryResult = NonNullable<Awaited<ReturnType<typeof listDemoTransfers>>>
-export type ListDemoTransfersQueryError = ErrorType<unknown>
+export type ListDemoTransfersQueryError = ErrorType<void>
 
 
 /**
  * @summary List simulated person-to-person transfers
  */
 
-export function useListDemoTransfers<TData = Awaited<ReturnType<typeof listDemoTransfers>>, TError = ErrorType<unknown>>(
+export function useListDemoTransfers<TData = Awaited<ReturnType<typeof listDemoTransfers>>, TError = ErrorType<void>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDemoTransfers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -3508,7 +3509,7 @@ return customFetch<DemoTransfer>(getCreateDemoTransferUrl(),
 
 export const getCreateDemoTransferMutationKey = () => ['createDemoTransfer'] as const;
 
-export const getCreateDemoTransferMutationOptions = <TError = ErrorType<unknown>,
+export const getCreateDemoTransferMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDemoTransfer>>, TError,CreateDemoTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createDemoTransfer>>, TError,CreateDemoTransferMutationVariables, TContext> => {
 
@@ -3537,13 +3538,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateDemoTransferMutationResult = NonNullable<Awaited<ReturnType<typeof createDemoTransfer>>>
     export type CreateDemoTransferMutationBody = BodyType<DemoTransferInput>
-    export type CreateDemoTransferMutationError = ErrorType<unknown>
+    export type CreateDemoTransferMutationError = ErrorType<void>
     export type CreateDemoTransferMutationVariables = {data: BodyType<DemoTransferInput>}
 
     /**
  * @summary Record a simulated person-to-person transfer
  */
-export const useCreateDemoTransfer = <TError = ErrorType<unknown>,
+export const useCreateDemoTransfer = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDemoTransfer>>, TError,CreateDemoTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createDemoTransfer>>,

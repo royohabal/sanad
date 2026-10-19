@@ -476,6 +476,8 @@ paths:
                 $ref: "#/components/schemas/Tip"
         "404":
           description: Worker not found
+        "429":
+          description: Public tip submission rate limit exceeded
   /tips/{reference}:
     get:
       operationId: getTipReceipt
@@ -501,6 +503,7 @@ paths:
       operationId: getCompanySummary
       tags: [sanad]
       summary: Get platform worker totals for administrators
+      description: Administrators only; requests from signed-in non-admin users are forbidden.
       security:
         - ClerkSession: []
       responses:
@@ -510,6 +513,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CompanySummary"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Administrator access required
   /settlements:
     get:
       operationId: listSettlements
@@ -653,6 +660,8 @@ paths:
                 $ref: "#/components/schemas/PublicChildRecipient"
         "404":
           description: Child not found
+        "429":
+          description: Public child lookup rate limit exceeded
   /child-recipients/{publicId}/transfers:
     post:
       operationId: createPublicChildTransfer
@@ -682,6 +691,8 @@ paths:
           description: Invalid transfer amount
         "404":
           description: Child not found
+        "429":
+          description: Public child transfer rate limit exceeded
   /children/{id}:
     patch:
       operationId: updateChild
@@ -989,6 +1000,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/DemoTransfer"
+        "429":
+          description: Public transfer history rate limit exceeded
     post:
       operationId: createDemoTransfer
       tags: [sanad]
@@ -1006,6 +1019,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DemoTransfer"
+        "400":
+          description: Invalid sender, recipient, or amount
+        "429":
+          description: Public transfer submission rate limit exceeded
 components:
   securitySchemes:
     ClerkSession:
@@ -1407,5 +1424,5 @@ components:
       properties:
         sender: { type: string, minLength: 2, maxLength: 80 }
         recipient: { type: string, minLength: 2, maxLength: 80 }
-        amountFils: { type: integer, minimum: 1 }
+        amountFils: { type: integer, minimum: 1, maximum: 1000000 }
 

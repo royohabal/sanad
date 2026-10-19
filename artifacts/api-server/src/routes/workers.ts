@@ -42,6 +42,7 @@ import {
   requireSignedIn,
   signedInUserId,
 } from "../middleware/authz";
+import { rateLimitPublicRequests } from "../lib/publicRateLimit";
 
 const router: IRouter = Router();
 const workers = () => getMongoDb().collection<WorkerRecord>("sanad_workers");
@@ -400,7 +401,14 @@ router.get(
   },
 );
 
-router.post("/tips", async (req, res): Promise<void> => {
+router.post(
+  "/tips",
+  rateLimitPublicRequests({
+    scope: "worker-tip",
+    limit: 60,
+    windowMs: 15 * 60 * 1000,
+  }),
+  async (req, res): Promise<void> => {
   const parsed = CreateDemoTipBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -473,7 +481,8 @@ router.post("/tips", async (req, res): Promise<void> => {
   res.status(201).json(
     CreateDemoTipResponse.parse(tipDto(tip, worker)),
   );
-});
+  },
+);
 
 router.get(
   "/tips",

@@ -48,6 +48,7 @@ import {
   UpdateChildResponse,
 } from "@workspace/api-zod";
 import { isAdminUser, signedInUserId } from "../middleware/authz";
+import { rateLimitPublicRequests } from "../lib/publicRateLimit";
 
 const router: IRouter = Router();
 const children = () => getMongoDb().collection<ChildRecord>("sanad_children");
@@ -196,31 +197,44 @@ function childFirstName(name: string) {
   return name.trim().split(/\s+/)[0] || "Child";
 }
 
-router.get("/child-recipients/:publicId", async (req, res): Promise<void> => {
-  const params = GetPublicChildRecipientParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(404).json({ error: "Child not found" });
-    return;
-  }
+router.get(
+  "/child-recipients/:publicId",
+  rateLimitPublicRequests({
+    scope: "child-qr-lookup",
+    limit: 120,
+    windowMs: 60 * 1000,
+  }),
+  async (req, res): Promise<void> => {
+    const params = GetPublicChildRecipientParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(404).json({ error: "Child not found" });
+      return;
+    }
 
-  const child = await children().findOne(
-    { publicId: params.data.publicId },
-    { projection: { publicId: 1, name: 1 } },
-  );
-  if (!child) {
-    res.status(404).json({ error: "Child not found" });
-    return;
-  }
-  res.json(
-    GetPublicChildRecipientResponse.parse({
-      publicId: child.publicId,
-      firstName: childFirstName(child.name),
-    }),
-  );
-});
+    const child = await children().findOne(
+      { publicId: params.data.publicId },
+      { projection: { publicId: 1, name: 1 } },
+    );
+    if (!child) {
+      res.status(404).json({ error: "Child not found" });
+      return;
+    }
+    res.json(
+      GetPublicChildRecipientResponse.parse({
+        publicId: child.publicId,
+        firstName: childFirstName(child.name),
+      }),
+    );
+  },
+);
 
 router.post(
   "/child-recipients/:publicId/transfers",
+  rateLimitPublicRequests({
+    scope: "child-qr-transfer",
+    limit: 60,
+    windowMs: 15 * 60 * 1000,
+  }),
   async (req, res): Promise<void> => {
     const params = CreatePublicChildTransferParams.safeParse(req.params);
     const body = CreatePublicChildTransferBody.safeParse(req.body);
