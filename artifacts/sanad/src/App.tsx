@@ -322,7 +322,7 @@ function ParentGate({ children }: {children:ReactNode}) {
  if(!isLoaded||isSignedIn&&session.isLoading) return <Shell><div className="mx-auto max-w-3xl"><LoadingCards/></div></Shell>;
  if(!isSignedIn) return <AuthPrompt/>;
  if(session.isError||!session.data) return <AuthPrompt title="Parent account needed" detail="Sign in with the parent account connected to these family profiles. Your family data is not available without a SANAD parent role."/>;
- if(session.data.role!=='parent') return <AuthPrompt title="Parent access required" detail="This supervised family area is available to signed-in parent accounts only."/>;
+  if(session.data.role!=='parent'&&session.data.role!=='admin') return <AuthPrompt title="Parent access required" detail="This supervised family area is available to signed-in parent or administrator accounts only."/>;
  return <>{children}</>;
 }
 function AdminPage() {

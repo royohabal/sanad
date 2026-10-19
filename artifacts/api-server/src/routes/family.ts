@@ -61,7 +61,12 @@ const cashOutRequests = () =>
   getMongoDb().collection<CashOutRequestRecord>("sanad_cash_out_requests");
 
 router.use(async (req, res, next) => {
-  if (req.path.startsWith("/child-recipients/")) {
+  const protectedFamilyPath =
+    req.path === "/children" ||
+    req.path.startsWith("/children/") ||
+    req.path.startsWith("/approvals/") ||
+    req.path.startsWith("/cash-outs/");
+  if (!protectedFamilyPath) {
     next();
     return;
   }

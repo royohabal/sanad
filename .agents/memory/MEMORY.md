@@ -1,1 +1,2 @@
 - [SANAD database and payments](sanad-database-and-payments.md) — MongoDB is primary; keep PostgreSQL intact and QR payments demo-only until payment setup.
+- [SANAD Clerk runtime versions](sanad-clerk-runtime-versions.md) — keep React and ReactDOM aligned, and refresh Vite’s optimizer cache after dependency upgrades.
