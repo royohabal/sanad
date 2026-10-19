@@ -439,7 +439,7 @@ function ChildWalletRoute() { return <ParentGate><ChildPage/></ParentGate>; }
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 function stripBase(path: string) { return basePath && path.startsWith(basePath) ? path.slice(basePath.length)||'/' : path; }
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL || `${window.location.origin}/api/__clerk`;
 const clerkAppearance = {
  theme:shadcn, cssLayerName:'clerk', options:{logoPlacement:'inside' as const,logoLinkUrl:basePath||'/',logoImageUrl:`${window.location.origin}${basePath}/logo.svg`},
  variables:{colorPrimary:'#581C2B',colorForeground:'#3B1720',colorMutedForeground:'#80695b',colorDanger:'#a34d3d',colorBackground:'#fffaf4',colorInput:'#fffaf4',colorInputForeground:'#3B1720',colorNeutral:'#ddcbb9',fontFamily:'DM Sans, Noto Sans Arabic, sans-serif',borderRadius:'0.8rem'},
