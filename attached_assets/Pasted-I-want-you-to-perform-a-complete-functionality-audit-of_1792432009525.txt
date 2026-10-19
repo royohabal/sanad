@@ -1,0 +1,102 @@
+I want you to perform a **complete functionality audit of my existing SANAD website**: https://sanad-finance-hub.replit.app/
+
+SANAD is a Kuwait-focused digital tipping platform. My main priority is the worker and company experience. Workers should have their own accounts, personal QR codes, and tip histories. Customers should be able to tip workers without creating an account.
+
+**IMPORTANT RULES**
+- Do NOT rebuild the website from scratch.
+- Do NOT redesign the website or change its existing burgundy, coral, and cream color palette.
+- Do NOT delete or break the Parent, Child, Individual, Company, Admin, or Arabic-language features.
+- Do NOT change the database structure, authentication setup, or existing code unless a change is necessary and I approve it.
+- First inspect the existing code, routes, authentication, database models, environment variables, and deployed configuration.
+- Test the actual implementation wherever possible. Do not assume a feature works just because its page or button exists.
+- Do not expose passwords, API keys, MongoDB connection strings, or other secrets in your report.
+- All tips and payments must remain clearly labelled as simulated unless real payment processing is actually configured.
+
+## 1. Worker registration and login
+Check whether a worker can:
+- Create their own account and securely sign in.
+- Enter their name, email, job title, and workplace during registration.
+- Sign out and sign back in without losing their account or data.
+- Access only their own worker dashboard and information.
+- Receive appropriate validation and error messages for invalid inputs or duplicate accounts.
+
+Determine whether authentication is real and persistent or whether the website is currently using demo users or a worker-selection dropdown.
+
+## 2. Personal QR code
+Check whether:
+- Every registered worker has a unique personal QR code or public tipping link.
+- The QR code opens the correct worker's public tipping page.
+- The QR code and link remain the same after signing out, logging back in, or refreshing the page.
+- A worker can preview, copy, download, or print their QR code or badge.
+- One worker cannot access another worker's private dashboard by changing a URL or worker ID.
+
+## 3. Customer tipping flow
+Test the public tipping page as a customer who is NOT signed in.
+
+Check whether the customer can:
+- Open the page directly from a worker's QR link.
+- Identify the correct worker and workplace.
+- Select a tip amount.
+- Optionally enter their name, leave a message, and provide a rating.
+- Submit a tip without creating a SANAD account.
+- Receive clear confirmation after submitting.
+
+Check whether duplicate submissions are possible and whether invalid tip amounts are rejected.
+
+If tips are simulated, make sure the website clearly explains that no real money is transferred. Do not claim a payment succeeded if no real payment was processed.
+
+## 4. Worker dashboard and tip history
+Check whether the signed-in worker can see:
+- Their own personal QR code.
+- Their total tips for the current month.
+- Their complete tip history, including amounts, dates, optional customer names, messages, and ratings.
+- An appropriate anonymous label when a customer does not provide their name.
+- Monthly settlement totals and status, where implemented.
+- Accurate totals that match the stored tip records.
+
+Submit a test tip if it is safe to do so in the demo environment, then verify that it appears in the correct worker's dashboard and remains after refreshing the page.
+
+Never mix sample/demo records with real records without clearly labelling them.
+
+## 5. Company accounts and permissions
+Check whether a company can:
+- Sign in securely.
+- View only workers associated with that company.
+- View appropriate worker tip totals and settlement summaries.
+- Manage workers only when it has the required permissions.
+- Avoid accessing another company's workers or private data.
+
+Check the server-side authorization rules, not just whether the interface hides buttons.
+
+## 6. Database and persistence
+Inspect the current database configuration and implementation.
+
+Determine whether:
+- Worker accounts and profiles are stored persistently.
+- Each worker is correctly linked to their authentication identity.
+- QR identifiers and public tipping links are stored or generated consistently.
+- Tip records are stored and linked to the correct worker.
+- Dashboard totals are calculated from stored records rather than hardcoded demo numbers.
+- Data remains available after page refreshes, sign-outs, and new sessions.
+- Server-side validation prevents users from changing tip ownership, amounts, or settlement statuses through client requests.
+
+Report whether MongoDB is actually connected and being used, or whether the application relies on temporary data, local state, or hardcoded records. Never display database credentials.
+
+## 7. Test the other pages
+Check that the existing Parent, Child, Individual, Admin, Company, and Arabic/English features still load and that navigation works. Identify broken links, missing pages, console errors, and failed server requests where accessible.
+
+## 8. Final report — do this before editing code
+Give me a clear report with these sections:
+
+1. **PASS** — tested and working.
+2. **FAIL** — tested and broken.
+3. **NOT IMPLEMENTED** — the feature does not exist yet.
+4. **UNVERIFIED** — you could not test it, and explain why.
+5. **Security and data issues** — especially authentication, account isolation, and company permissions.
+6. **Prioritized fixes** — list the most important problems first.
+
+For every issue, tell me which page or file is involved, what you observed, and what needs to change.
+
+Separate actual test results from conclusions based only on code inspection. Do not mark something as passed unless you have evidence.
+
+**Do not implement fixes yet.** Finish the audit and show me the report first. I will review the findings before authorizing changes.
