@@ -1,0 +1,46 @@
+Diagnose why SANAD still displays simulated demo payment even though I added Stripe API keys to Replit Secrets.
+
+Do not rewrite the payment system or change existing wallet balances. First inspect the current implementation and identify the exact reason Stripe Checkout is not opening.
+
+Please check the following:
+
+1. **Environment variables**
+   - Identify the exact environment variable names the backend reads for the Stripe secret key and any publishable key.
+   - Check whether the required variables exist in the running backend process, without printing or exposing their values.
+   - Confirm that the keys are Stripe TEST keys, not live keys.
+   - Check whether the running application is using the same environment where I added the secrets.
+   - If the app is published on Replit, check whether the published deployment also has the required secrets. Workspace Secrets and published-app secrets may be configured separately.
+
+2. **Stripe initialization**
+   - Confirm the Stripe SDK is installed and initialized successfully on the server.
+   - Confirm the checkout API route is actually called when I click the payment button.
+   - Check whether the frontend is automatically choosing simulated checkout because Stripe is missing, disabled, or failing initialization.
+   - Check the server logs for the exact Stripe error. Never log secret keys or other sensitive credentials.
+
+3. **KWD currency error**
+   - The previous diagnostic reported HTTP 400 for `line_items[0][price_data][currency]`.
+   - Reproduce the failure safely in Stripe test mode and report the exact error code and message.
+   - Check the currency formatting, amount conversion to the correct minor-unit representation, and the configured Stripe account.
+   - Do not assume KWD is universally unsupported, and do not silently switch to USD.
+   - Keep KWD in the SANAD interface and retain the simulated KWD fallback if Stripe Checkout cannot be created.
+
+4. **Checkout session**
+   - Verify that the server creates a Stripe Checkout Session using the official SDK, with the correct `mode`, `line_items`, `success_url`, and `cancel_url`.
+   - Confirm that the frontend redirects the customer to the returned Stripe-hosted Checkout URL when session creation succeeds.
+   - Confirm that Stripe failures return a safe, useful error and activate the clearly labelled simulated checkout only when appropriate.
+   - Do not fake a successful Stripe response or credit a wallet simply because a success URL was opened.
+
+5. **Safe testing**
+   - Use a test-only request and a small permitted amount.
+   - Do not process real payments, expose credentials, or modify/delete existing production records.
+   - Preserve MongoDB, Clerk, all four payment flows, and the existing wallet ledger.
+   - Do not deploy or change the currency as part of this diagnosis.
+
+At the end, tell me:
+- The exact root cause.
+- Whether the test keys are being read by the running backend.
+- Whether a Stripe Checkout Session was successfully created.
+- The exact fix required, if any.
+- Whether I need to republish the Replit app for the change to appear on the published website.
+
+Do not claim Stripe is working unless a real test-mode Checkout Session was successfully created and its returned URL was verified.
