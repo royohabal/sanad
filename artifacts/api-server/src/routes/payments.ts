@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { clerkClient } from "@clerk/express";
-import { Router, type IRouter, type Request } from "express";
+import {
+  Router,
+  type IRouter,
+  type Request,
+  type Response,
+} from "express";
 import Stripe from "stripe";
 import {
   getMongoDb,
@@ -32,9 +37,17 @@ import { appendWorkerLedgerEvent } from "../lib/workerFinance";
 import { rateLimitPublicRequests } from "../lib/publicRateLimit";
 import { logger } from "../lib/logger";
 import {
+  convertKwdFilsToUsdCents,
+  EXCHANGE_RATE_PROVIDER,
+  getKwdUsdRate,
+  STRIPE_USD_MINIMUM_CENTS,
+  type KwdUsdRate,
+} from "../lib/exchangeRate";
+import {
   isTestStripeSecretKey,
   paymentSettlementDecision,
   stripeSessionMatchesPayment,
+  verifyStripeWebhookEvent,
 } from "../lib/paymentRules";
 
 const router: IRouter = Router();
@@ -71,6 +84,17 @@ const DEMO_NOTICE =
   "SIMULATED PAYMENT — UNIVERSITY DEMO. No real payment was processed.";
 const STRIPE_TEST_NOTICE =
   "Stripe test checkout only. No live payment or payout is enabled.";
+
+class PaymentCheckoutError extends Error {
+  constructor(
+    message: string,
+    readonly statusCode = 503,
+    readonly diagnosticCode = "stripe_checkout_unavailable",
+  ) {
+    super(message);
+    this.name = "PaymentCheckoutError";
+  }
+}
 
 type PaymentResult =
   | { kind: "ok"; payment: SanadPaymentRecord }
@@ -155,6 +179,12 @@ function safePaymentDto(payment: SanadPaymentRecord) {
     currency: payment.currency,
     label: payment.label,
     checkoutUrl: payment.checkoutUrl ?? null,
+    usdChargeCents: payment.usdChargeCents ?? null,
+    usdCurrency: payment.usdCurrency ?? null,
+    usdPerKwd: payment.usdPerKwd ?? null,
+    rateProvider: payment.rateProvider ?? null,
+    rateUpdatedAt: payment.rateUpdatedAt ?? null,
+    roundingMethod: payment.roundingMethod ?? null,
     reference: payment.reference ?? null,
     notice: payment.notice ?? null,
     createdAt: payment.createdAt,
@@ -206,11 +236,39 @@ async function createStripeSession(
 ): Promise<Partial<SanadPaymentRecord>> {
   const stripe = stripeClient();
   const origin = appOrigin(req);
-  if (!stripe || !origin) {
-    return {
-      provider: "simulated",
-      notice: DEMO_NOTICE,
-    };
+  if (!stripe) {
+    logger.error(
+      { testKeyConfigured: Boolean(stripeSecretKey()) },
+      "Stripe test Checkout is not configured",
+    );
+    throw new PaymentCheckoutError(
+      "Stripe test Checkout is not configured. No payment was started.",
+    );
+  }
+  if (!origin) {
+    logger.error(
+      { publicOriginConfigured: Boolean(process.env.SANAD_PUBLIC_BASE_URL?.trim()) },
+      "SANAD public checkout origin is not configured",
+    );
+    throw new PaymentCheckoutError(
+      "SANAD’s secure checkout return address is not configured. No payment was started.",
+      503,
+      "checkout_origin_unavailable",
+    );
+  }
+  if (
+    payment.flow !== "worker_tip" ||
+    !Number.isSafeInteger(payment.usdChargeCents) ||
+    (payment.usdChargeCents ?? 0) < STRIPE_USD_MINIMUM_CENTS ||
+    payment.usdCurrency !== "USD" ||
+    payment.usdPerKwd == null ||
+    !payment.rateUpdatedAt
+  ) {
+    throw new PaymentCheckoutError(
+      "A valid USD conversion is missing. No payment was started.",
+      503,
+      "usd_conversion_missing",
+    );
   }
 
   try {
@@ -222,8 +280,8 @@ async function createStripeSession(
           {
             quantity: 1,
             price_data: {
-              currency: "kwd",
-              unit_amount: payment.amountFils,
+              currency: "usd",
+              unit_amount: payment.usdChargeCents,
               product_data: {
                 name: `SANAD ${payment.label}`,
                 description: STRIPE_TEST_NOTICE,
@@ -235,6 +293,11 @@ async function createStripeSession(
         metadata: {
           sanad_payment_id: payment.paymentId,
           sanad_flow: payment.flow,
+          sanad_kwd_amount_fils: String(payment.amountFils),
+          sanad_currency: "usd",
+          sanad_usd_charge_cents: String(payment.usdChargeCents),
+          sanad_usd_per_kwd: String(payment.usdPerKwd),
+          sanad_rate_updated_at: payment.rateUpdatedAt.toISOString(),
         },
         success_url: `${origin}/checkout/return?paymentId=${payment.paymentId}&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/checkout/cancel?paymentId=${payment.paymentId}`,
@@ -242,11 +305,26 @@ async function createStripeSession(
       { idempotencyKey: `sanad-checkout-${payment.paymentId}` },
     );
 
-    if (!session.url) {
-      return {
-        provider: "simulated",
-        notice: DEMO_NOTICE,
-      };
+    if (
+      !session.url ||
+      session.livemode !== false ||
+      session.currency?.toLowerCase() !== "usd" ||
+      session.amount_total !== payment.usdChargeCents
+    ) {
+      logger.warn(
+        {
+          sessionId: session.id,
+          livemode: session.livemode,
+          currency: session.currency,
+          amountTotal: session.amount_total,
+        },
+        "Stripe returned an unexpected test Checkout Session",
+      );
+      throw new PaymentCheckoutError(
+        "Stripe did not return the expected USD test checkout. No payment was started.",
+        503,
+        "stripe_session_mismatch",
+      );
     }
     return {
       provider: "stripe_test",
@@ -255,6 +333,7 @@ async function createStripeSession(
       notice: STRIPE_TEST_NOTICE,
     };
   } catch (error) {
+    if (error instanceof PaymentCheckoutError) throw error;
     const value =
       typeof error === "object" && error !== null
         ? (error as {
@@ -277,15 +356,76 @@ async function createStripeSession(
         httpStatus:
           typeof value.statusCode === "number" ? value.statusCode : undefined,
       },
-      "Stripe test Checkout unavailable; using the labelled simulated checkout",
+      "Stripe test Checkout creation failed",
     );
-    return {
-      provider: "simulated",
-      notice:
-        typeof value.param === "string" && value.param.endsWith("currency")
-          ? `Stripe test Checkout is not accepting KWD for this account. ${DEMO_NOTICE}`
-          : DEMO_NOTICE,
-    };
+    throw new PaymentCheckoutError(
+      "Stripe test Checkout could not be started. No payment was charged.",
+      503,
+      typeof value.code === "string" ? value.code.slice(0, 48) : "stripe_api_error",
+    );
+  }
+}
+
+async function createAndRespondStripeCheckout(
+  req: Request,
+  payment: SanadPaymentRecord,
+  res: Response,
+  responseStatus: number,
+): Promise<void> {
+  try {
+    const stripeFields = await createStripeSession(req, payment);
+    const updated = await payments().findOneAndUpdate(
+      { paymentId: payment.paymentId, status: "pending" },
+      { $set: { ...stripeFields, updatedAt: new Date() } },
+      { returnDocument: "after" },
+    );
+    if (!updated) {
+      res.status(409).json({
+        error: "Checkout state changed. Refresh before trying again.",
+      });
+      return;
+    }
+    res.status(responseStatus).json(
+      CreatePaymentCheckoutResponse.parse(safePaymentDto(updated)),
+    );
+  } catch (error) {
+    const failure =
+      error instanceof PaymentCheckoutError
+        ? error
+        : new PaymentCheckoutError(
+            "Stripe test Checkout could not be started. No payment was charged.",
+          );
+    logger.warn(
+      {
+        paymentId: payment.paymentId,
+        diagnosticCode: failure.diagnosticCode,
+      },
+      "Customer tip Checkout failed without simulated fallback",
+    );
+    try {
+      await payments().updateOne(
+        { paymentId: payment.paymentId, status: "pending" },
+        {
+          $set: {
+            status: "failed",
+            notice: failure.message,
+            updatedAt: new Date(),
+          },
+        },
+      );
+    } catch (databaseError) {
+      logger.error(
+        {
+          paymentId: payment.paymentId,
+          errorName:
+            databaseError instanceof Error
+              ? databaseError.name
+              : "UnknownDatabaseError",
+        },
+        "Could not record failed Stripe test Checkout",
+      );
+    }
+    res.status(failure.statusCode).json({ error: failure.message });
   }
 }
 
@@ -434,6 +574,147 @@ export async function settlePayment(
   });
 }
 
+function stripeSessionIdentifiesPayment(
+  payment: SanadPaymentRecord,
+  session: Stripe.Checkout.Session,
+): boolean {
+  return (
+    payment.provider === "stripe_test" &&
+    payment.checkoutSessionId === session.id &&
+    session.metadata?.sanad_payment_id === payment.paymentId &&
+    session.client_reference_id === payment.paymentId
+  );
+}
+
+export async function stripeWebhookHandler(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const stripe = stripeClient();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+  const signature = req.get("stripe-signature");
+  if (!stripe || !webhookSecret) {
+    logger.error(
+      {
+        testStripeKeyConfigured: Boolean(stripe),
+        webhookSecretConfigured: Boolean(webhookSecret),
+      },
+      "Stripe test webhook is not configured",
+    );
+    res.status(503).json({ error: "Stripe test webhook is not configured." });
+    return;
+  }
+  if (!signature || !Buffer.isBuffer(req.body)) {
+    res.status(400).json({ error: "A signed Stripe webhook is required." });
+    return;
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = verifyStripeWebhookEvent(
+      stripe,
+      req.body,
+      signature,
+      webhookSecret,
+    );
+  } catch (error) {
+    logger.warn(
+      {
+        errorName:
+          error instanceof Error ? error.name : "UnknownStripeSignatureError",
+      },
+      "Stripe test webhook signature verification failed",
+    );
+    res.status(400).json({ error: "Stripe webhook signature is invalid." });
+    return;
+  }
+  if (event.livemode) {
+    logger.warn({ eventId: event.id }, "Rejected a live-mode Stripe webhook");
+    res.status(400).json({ error: "SANAD accepts test-mode webhooks only." });
+    return;
+  }
+
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
+    const eventSession = event.data.object as Stripe.Checkout.Session;
+    const payment = await payments().findOne({
+      checkoutSessionId: eventSession.id,
+      provider: "stripe_test",
+    });
+    if (!payment || !stripeSessionIdentifiesPayment(payment, eventSession)) {
+      logger.warn(
+        { eventId: event.id, sessionId: eventSession.id },
+        "Ignored Stripe webhook for an unknown SANAD checkout",
+      );
+      res.status(200).json({ received: true });
+      return;
+    }
+
+    let verifiedSession: Stripe.Checkout.Session;
+    try {
+      verifiedSession = await stripe.checkout.sessions.retrieve(eventSession.id);
+    } catch (error) {
+      logger.error(
+        {
+          eventId: event.id,
+          sessionId: eventSession.id,
+          errorName:
+            error instanceof Error ? error.name : "UnknownStripeError",
+        },
+        "Could not verify a Stripe webhook session",
+      );
+      res.status(500).json({ error: "Stripe session verification failed." });
+      return;
+    }
+    if (!stripeSessionMatchesPayment(payment, verifiedSession)) {
+      logger.warn(
+        { eventId: event.id, paymentId: payment.paymentId },
+        "Stripe webhook session did not match the pending SANAD payment",
+      );
+      res.status(200).json({ received: true });
+      return;
+    }
+
+    const outcome = await settlePayment(payment.paymentId, "paid");
+    if (outcome.kind === "conflict") {
+      logger.warn(
+        { eventId: event.id, paymentId: payment.paymentId },
+        "Stripe webhook could not settle a non-pending SANAD payment",
+      );
+    }
+    res.status(200).json({ received: true });
+    return;
+  }
+
+  if (
+    event.type === "checkout.session.expired" ||
+    event.type === "checkout.session.async_payment_failed"
+  ) {
+    const failedSession = event.data.object as Stripe.Checkout.Session;
+    const payment = await payments().findOne({
+      checkoutSessionId: failedSession.id,
+      provider: "stripe_test",
+      status: "pending",
+    });
+    if (payment && stripeSessionIdentifiesPayment(payment, failedSession)) {
+      await payments().updateOne(
+        { paymentId: payment.paymentId, status: "pending" },
+        {
+          $set: {
+            status:
+              event.type === "checkout.session.expired" ? "expired" : "failed",
+            updatedAt: new Date(),
+          },
+        },
+      );
+    }
+  }
+
+  res.status(200).json({ received: true });
+}
+
 router.post(
   "/payments/checkout",
   rateLimitPublicRequests({
@@ -553,17 +834,36 @@ router.post(
         });
         return;
       }
-      if (existing.provider === "stripe_test" && !existing.checkoutSessionId) {
-        const stripeFields = await createStripeSession(req, existing);
-        const refreshed = await payments().findOneAndUpdate(
-          { paymentId: existing.paymentId, status: "pending" },
-          { $set: stripeFields },
-          { returnDocument: "after" },
-        );
-        if (refreshed) {
-          res.status(200).json(CreatePaymentCheckoutResponse.parse(safePaymentDto(refreshed)));
-          return;
-        }
+      if (
+        existing.flow === "worker_tip" &&
+        existing.provider === "simulated" &&
+        existing.status === "pending"
+      ) {
+        res.status(409).json({
+          error:
+            "This older tip checkout used simulation and cannot be completed. Start a new tip checkout.",
+        });
+        return;
+      }
+      if (
+        existing.flow === "worker_tip" &&
+        existing.provider === "stripe_test" &&
+        existing.status === "pending" &&
+        !existing.checkoutSessionId
+      ) {
+        await createAndRespondStripeCheckout(req, existing, res, 200);
+        return;
+      }
+      if (
+        existing.flow === "worker_tip" &&
+        existing.status === "failed"
+      ) {
+        res.status(409).json({
+          error:
+            existing.notice ??
+            "This tip checkout failed. Start a new checkout to try again.",
+        });
+        return;
       }
       res.status(200).json(
         CreatePaymentCheckoutResponse.parse(safePaymentDto(existing)),
@@ -571,16 +871,58 @@ router.post(
       return;
     }
 
+    let rate: KwdUsdRate | undefined;
+    let usdChargeCents: number | undefined;
+    if (body.flow === "worker_tip") {
+      try {
+        rate = await getKwdUsdRate();
+        usdChargeCents = convertKwdFilsToUsdCents(
+          body.amountFils,
+          rate.usdPerKwd,
+        );
+      } catch (error) {
+        logger.warn(
+          {
+            errorName:
+              error instanceof Error ? error.name : "UnknownExchangeRateError",
+          },
+          "KWD-to-USD conversion failed; tip checkout was not created",
+        );
+        res.status(503).json({
+          error:
+            "A current KWD-to-USD rate is unavailable. No payment was started; please try again later.",
+        });
+        return;
+      }
+      if (usdChargeCents < STRIPE_USD_MINIMUM_CENTS) {
+        res.status(422).json({
+          error: `This tip converts to USD ${(usdChargeCents / 100).toFixed(2)}, below Stripe’s $0.50 USD card minimum. Choose a larger KWD amount.`,
+        });
+        return;
+      }
+    }
+
     const now = new Date();
     let payment: SanadPaymentRecord = {
       paymentId: randomUUID(),
       ...requested,
-      provider: "simulated",
+      provider: body.flow === "worker_tip" ? "stripe_test" : "simulated",
       status: "pending",
       currency: "KWD",
       label,
       idempotencyKey: body.idempotencyKey,
-      notice: DEMO_NOTICE,
+      notice:
+        body.flow === "worker_tip" ? STRIPE_TEST_NOTICE : DEMO_NOTICE,
+      ...(rate && usdChargeCents != null
+        ? {
+            usdChargeCents,
+            usdCurrency: "USD" as const,
+            usdPerKwd: rate.usdPerKwd,
+            rateProvider: EXCHANGE_RATE_PROVIDER,
+            rateUpdatedAt: rate.updatedAt,
+            roundingMethod: "nearest_cent" as const,
+          }
+        : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -597,6 +939,15 @@ router.post(
           idempotencyKey: body.idempotencyKey,
         });
         if (duplicate && matchesPayment(duplicate, requested)) {
+          if (
+            duplicate.flow === "worker_tip" &&
+            duplicate.provider === "stripe_test" &&
+            duplicate.status === "pending" &&
+            !duplicate.checkoutSessionId
+          ) {
+            await createAndRespondStripeCheckout(req, duplicate, res, 200);
+            return;
+          }
           res.status(200).json(
             CreatePaymentCheckoutResponse.parse(safePaymentDto(duplicate)),
           );
@@ -610,13 +961,10 @@ router.post(
       throw error;
     }
 
-    const stripeFields = await createStripeSession(req, payment);
-    const updated = await payments().findOneAndUpdate(
-      { paymentId: payment.paymentId, status: "pending" },
-      { $set: { ...stripeFields, updatedAt: new Date() } },
-      { returnDocument: "after" },
-    );
-    if (updated) payment = updated;
+    if (payment.flow === "worker_tip") {
+      await createAndRespondStripeCheckout(req, payment, res, 201);
+      return;
+    }
     res.status(201).json(
       CreatePaymentCheckoutResponse.parse(safePaymentDto(payment)),
     );
@@ -657,9 +1005,10 @@ router.post(
       res.status(404).json({ error: "Checkout not found or not accessible." });
       return;
     }
-    if (payment.provider !== "simulated") {
+    if (payment.flow === "worker_tip" || payment.provider !== "simulated") {
       res.status(409).json({
-        error: "This is not a simulated checkout. Stripe must verify its own session.",
+        error:
+          "Customer tips require Stripe test Checkout and cannot be completed as simulated payments.",
       });
       return;
     }

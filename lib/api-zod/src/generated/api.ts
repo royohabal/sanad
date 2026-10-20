@@ -1624,8 +1624,8 @@ export const UpdateApprovalRequestResponse = zod.object({
 
 
 /**
- * Worker tips, child QR transfers, parent child-wallet top-ups, and personal-wallet top-ups use this checkout. Parent and personal wallet flows require sign-in. Stripe is test-mode only; unavailable Stripe test checkout uses an explicitly simulated checkout.
- * @summary Start a payment or explicitly simulated checkout
+ * Worker tips require a server-created USD Stripe test Checkout Session and never fall back to simulation. Child QR transfers and signed-in wallet top-ups retain their existing explicitly simulated behavior.
+ * @summary Start a customer tip or explicitly simulated wallet checkout
  */
 
 export const createPaymentCheckoutBodyAmountFilsMax = 1000000;
@@ -1656,6 +1656,12 @@ export const CreatePaymentCheckoutResponse = zod.object({
   "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
   "amountFils": zod.number().int(),
   "currency": zod.enum(['KWD']),
+  "usdChargeCents": zod.number().int().nullish(),
+  "usdCurrency": zod.enum(['USD']).nullish(),
+  "usdPerKwd": zod.number().nullish(),
+  "rateProvider": zod.string().nullish(),
+  "rateUpdatedAt": zod.coerce.date().nullish(),
+  "roundingMethod": zod.enum(['nearest_cent']).nullish(),
   "label": zod.string(),
   "checkoutUrl": zod.string().nullish(),
   "reference": zod.string().nullish(),
@@ -1678,6 +1684,12 @@ export const GetPaymentCheckoutResponse = zod.object({
   "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
   "amountFils": zod.number().int(),
   "currency": zod.enum(['KWD']),
+  "usdChargeCents": zod.number().int().nullish(),
+  "usdCurrency": zod.enum(['USD']).nullish(),
+  "usdPerKwd": zod.number().nullish(),
+  "rateProvider": zod.string().nullish(),
+  "rateUpdatedAt": zod.coerce.date().nullish(),
+  "roundingMethod": zod.enum(['nearest_cent']).nullish(),
   "label": zod.string(),
   "checkoutUrl": zod.string().nullish(),
   "reference": zod.string().nullish(),
@@ -1701,6 +1713,12 @@ export const CompleteSimulatedPaymentResponse = zod.object({
   "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
   "amountFils": zod.number().int(),
   "currency": zod.enum(['KWD']),
+  "usdChargeCents": zod.number().int().nullish(),
+  "usdCurrency": zod.enum(['USD']).nullish(),
+  "usdPerKwd": zod.number().nullish(),
+  "rateProvider": zod.string().nullish(),
+  "rateUpdatedAt": zod.coerce.date().nullish(),
+  "roundingMethod": zod.enum(['nearest_cent']).nullish(),
   "label": zod.string(),
   "checkoutUrl": zod.string().nullish(),
   "reference": zod.string().nullish(),
@@ -1710,7 +1728,7 @@ export const CompleteSimulatedPaymentResponse = zod.object({
 
 
 /**
- * SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid session with matching amount, currency, and metadata.
+ * SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid USD test session with matching amount, currency, and metadata.
  * @summary Verify a Stripe test Checkout Session on the server
  */
 export const VerifyStripeCheckoutParams = zod.object({
@@ -1733,6 +1751,12 @@ export const VerifyStripeCheckoutResponse = zod.object({
   "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
   "amountFils": zod.number().int(),
   "currency": zod.enum(['KWD']),
+  "usdChargeCents": zod.number().int().nullish(),
+  "usdCurrency": zod.enum(['USD']).nullish(),
+  "usdPerKwd": zod.number().nullish(),
+  "rateProvider": zod.string().nullish(),
+  "rateUpdatedAt": zod.coerce.date().nullish(),
+  "roundingMethod": zod.enum(['nearest_cent']).nullish(),
   "label": zod.string(),
   "checkoutUrl": zod.string().nullish(),
   "reference": zod.string().nullish(),
@@ -1756,6 +1780,12 @@ export const CancelPaymentCheckoutResponse = zod.object({
   "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
   "amountFils": zod.number().int(),
   "currency": zod.enum(['KWD']),
+  "usdChargeCents": zod.number().int().nullish(),
+  "usdCurrency": zod.enum(['USD']).nullish(),
+  "usdPerKwd": zod.number().nullish(),
+  "rateProvider": zod.string().nullish(),
+  "rateUpdatedAt": zod.coerce.date().nullish(),
+  "roundingMethod": zod.enum(['nearest_cent']).nullish(),
   "label": zod.string(),
   "checkoutUrl": zod.string().nullish(),
   "reference": zod.string().nullish(),

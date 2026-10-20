@@ -1473,8 +1473,8 @@ paths:
     post:
       operationId: createPaymentCheckout
       tags: [sanad]
-      summary: Start a payment or explicitly simulated checkout
-      description: Worker tips, child QR transfers, parent child-wallet top-ups, and personal-wallet top-ups use this checkout. Parent and personal wallet flows require sign-in. Stripe is test-mode only; unavailable Stripe test checkout uses an explicitly simulated checkout.
+      summary: Start a customer tip or explicitly simulated wallet checkout
+      description: Worker tips require a server-created USD Stripe test Checkout Session and never fall back to simulation. Child QR transfers and signed-in wallet top-ups retain their existing explicitly simulated behavior.
       requestBody:
         required: true
         content:
@@ -1498,6 +1498,10 @@ paths:
           description: Idempotency key reused with different details
         "429":
           description: Checkout rate limit exceeded
+        "422":
+          description: Converted USD amount is below Stripe's minimum
+        "503":
+          description: Stripe test Checkout or a current exchange rate is unavailable; no payment was started
   /payments/{paymentId}:
     get:
       operationId: getPaymentCheckout
@@ -1544,7 +1548,7 @@ paths:
       operationId: verifyStripeCheckout
       tags: [sanad]
       summary: Verify a Stripe test Checkout Session on the server
-      description: SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid session with matching amount, currency, and metadata.
+      description: SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid USD test session with matching amount, currency, and metadata.
       parameters:
         - in: path
           name: paymentId
@@ -2415,6 +2419,12 @@ components:
           enum: [pending, paid, demo_completed, cancelled, expired, failed]
         amountFils: { type: integer }
         currency: { type: string, enum: [KWD] }
+        usdChargeCents: { type: integer, nullable: true }
+        usdCurrency: { type: string, enum: [USD], nullable: true }
+        usdPerKwd: { type: number, nullable: true }
+        rateProvider: { type: string, nullable: true }
+        rateUpdatedAt: { type: string, format: date-time, nullable: true }
+        roundingMethod: { type: string, enum: [nearest_cent], nullable: true }
         label: { type: string }
         checkoutUrl: { type: string, nullable: true }
         reference: { type: string, nullable: true }

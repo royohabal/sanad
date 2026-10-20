@@ -262,6 +262,12 @@ export interface SanadPaymentRecord {
   customerName?: string | null;
   checkoutSessionId?: string;
   checkoutUrl?: string;
+  usdChargeCents?: number;
+  usdCurrency?: "USD";
+  usdPerKwd?: number;
+  rateProvider?: string;
+  rateUpdatedAt?: Date;
+  roundingMethod?: "nearest_cent";
   reference?: string;
   notice?: string;
   createdAt: Date;

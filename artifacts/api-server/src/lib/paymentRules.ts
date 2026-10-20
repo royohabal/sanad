@@ -15,13 +15,44 @@ export function isTestStripeSecretKey(value: string | undefined): boolean {
   return Boolean(value?.startsWith("sk_test_"));
 }
 
+export function verifyStripeWebhookEvent(
+  stripe: Stripe,
+  rawBody: Buffer,
+  signature: string,
+  webhookSecret: string,
+): Stripe.Event {
+  return stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+}
+
 export function stripeSessionMatchesPayment(
   payment: Pick<
     SanadPaymentRecord,
-    "paymentId" | "amountFils" | "provider" | "checkoutSessionId"
+    | "paymentId"
+    | "amountFils"
+    | "provider"
+    | "checkoutSessionId"
+    | "usdChargeCents"
+    | "usdCurrency"
+    | "usdPerKwd"
   >,
   session: Stripe.Checkout.Session,
 ): boolean {
+  const expectsUsd =
+    payment.usdCurrency === "USD" &&
+    Number.isSafeInteger(payment.usdChargeCents) &&
+    (payment.usdChargeCents ?? 0) > 0;
+  const expectedCurrency = expectsUsd ? "usd" : "kwd";
+  const expectedAmount = expectsUsd
+    ? payment.usdChargeCents
+    : payment.amountFils;
+  const usdMetadataMatches =
+    !expectsUsd ||
+    (session.metadata?.sanad_currency === "usd" &&
+      session.metadata?.sanad_usd_charge_cents ===
+        String(payment.usdChargeCents) &&
+      session.metadata?.sanad_kwd_amount_fils === String(payment.amountFils) &&
+      session.metadata?.sanad_usd_per_kwd === String(payment.usdPerKwd));
+
   return (
     payment.provider === "stripe_test" &&
     Boolean(payment.checkoutSessionId) &&
@@ -32,8 +63,9 @@ export function stripeSessionMatchesPayment(
     session.livemode === false &&
     session.status === "complete" &&
     session.payment_status === "paid" &&
-    session.currency?.toLowerCase() === "kwd" &&
-    session.amount_total === payment.amountFils
+    session.currency?.toLowerCase() === expectedCurrency &&
+    session.amount_total === expectedAmount &&
+    usdMetadataMatches
   );
 }
 

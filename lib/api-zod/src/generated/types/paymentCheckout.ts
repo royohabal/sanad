@@ -8,7 +8,9 @@
 import type { PaymentCheckoutCurrency } from './paymentCheckoutCurrency';
 import type { PaymentCheckoutFlow } from './paymentCheckoutFlow';
 import type { PaymentCheckoutProvider } from './paymentCheckoutProvider';
+import type { PaymentCheckoutRoundingMethod } from './paymentCheckoutRoundingMethod';
 import type { PaymentCheckoutStatus } from './paymentCheckoutStatus';
+import type { PaymentCheckoutUsdCurrency } from './paymentCheckoutUsdCurrency';
 
 export interface PaymentCheckout {
   paymentId: string;
@@ -17,6 +19,12 @@ export interface PaymentCheckout {
   status: PaymentCheckoutStatus;
   amountFils: number;
   currency: PaymentCheckoutCurrency;
+  usdChargeCents?: number | null;
+  usdCurrency?: PaymentCheckoutUsdCurrency;
+  usdPerKwd?: number | null;
+  rateProvider?: string | null;
+  rateUpdatedAt?: Date | null;
+  roundingMethod?: PaymentCheckoutRoundingMethod;
   label: string;
   checkoutUrl?: string | null;
   reference?: string | null;

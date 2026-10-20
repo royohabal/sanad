@@ -1023,6 +1023,20 @@ export const PaymentCheckoutCurrency = {
   KWD: 'KWD',
 } as const;
 
+export type PaymentCheckoutUsdCurrency = typeof PaymentCheckoutUsdCurrency[keyof typeof PaymentCheckoutUsdCurrency] | null;
+
+
+export const PaymentCheckoutUsdCurrency = {
+  USD: 'USD',
+} as const;
+
+export type PaymentCheckoutRoundingMethod = typeof PaymentCheckoutRoundingMethod[keyof typeof PaymentCheckoutRoundingMethod] | null;
+
+
+export const PaymentCheckoutRoundingMethod = {
+  nearest_cent: 'nearest_cent',
+} as const;
+
 export interface PaymentCheckout {
   paymentId: string;
   flow: PaymentCheckoutFlow;
@@ -1030,6 +1044,12 @@ export interface PaymentCheckout {
   status: PaymentCheckoutStatus;
   amountFils: number;
   currency: PaymentCheckoutCurrency;
+  usdChargeCents?: number | null;
+  usdCurrency?: PaymentCheckoutUsdCurrency;
+  usdPerKwd?: number | null;
+  rateProvider?: string | null;
+  rateUpdatedAt?: string | null;
+  roundingMethod?: PaymentCheckoutRoundingMethod;
   label: string;
   checkoutUrl?: string | null;
   reference?: string | null;

@@ -4913,8 +4913,8 @@ export const getCreatePaymentCheckoutUrl = () => {
 }
 
 /**
- * Worker tips, child QR transfers, parent child-wallet top-ups, and personal-wallet top-ups use this checkout. Parent and personal wallet flows require sign-in. Stripe is test-mode only; unavailable Stripe test checkout uses an explicitly simulated checkout.
- * @summary Start a payment or explicitly simulated checkout
+ * Worker tips require a server-created USD Stripe test Checkout Session and never fall back to simulation. Child QR transfers and signed-in wallet top-ups retain their existing explicitly simulated behavior.
+ * @summary Start a customer tip or explicitly simulated wallet checkout
  */
 export const createPaymentCheckout = async (paymentCheckoutInput: PaymentCheckoutInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentCheckout> => {
 
@@ -4980,7 +4980,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreatePaymentCheckoutMutationVariables = {data: BodyType<PaymentCheckoutInput>}
 
     /**
- * @summary Start a payment or explicitly simulated checkout
+ * @summary Start a customer tip or explicitly simulated wallet checkout
  */
 export const useCreatePaymentCheckout = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPaymentCheckout>>, TError,CreatePaymentCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -5154,7 +5154,7 @@ export const getVerifyStripeCheckoutUrl = (paymentId: string,) => {
 }
 
 /**
- * SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid session with matching amount, currency, and metadata.
+ * SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid USD test session with matching amount, currency, and metadata.
  * @summary Verify a Stripe test Checkout Session on the server
  */
 export const verifyStripeCheckout = async (paymentId: string,
