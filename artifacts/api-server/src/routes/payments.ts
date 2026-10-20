@@ -88,6 +88,14 @@ function stripeClient(): Stripe | null {
   return key ? new Stripe(key) : null;
 }
 
+function safeStripeErrorMessage(error: unknown): string | undefined {
+  if (!(error instanceof Error)) return undefined;
+  return error.message
+    .replace(/\b(?:sk|rk)_(?:test|live)_[A-Za-z0-9_-]+\b/g, "[redacted]")
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, "Bearer [redacted]")
+    .slice(0, 2000);
+}
+
 function appOrigin(req: Request): string | null {
   const configured = process.env.SANAD_PUBLIC_BASE_URL?.trim();
   if (configured) {
@@ -265,6 +273,7 @@ async function createStripeSession(
           typeof value.code === "string" ? value.code.slice(0, 48) : undefined,
         errorParam:
           typeof value.param === "string" ? value.param.slice(0, 48) : undefined,
+        errorMessage: safeStripeErrorMessage(error),
         httpStatus:
           typeof value.statusCode === "number" ? value.statusCode : undefined,
       },
