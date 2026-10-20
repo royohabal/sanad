@@ -199,3 +199,102 @@ export interface DemoTransferRecord {
   status: string;
   createdAt: Date;
 }
+
+export type SanadPaymentFlow =
+  | "worker_tip"
+  | "child_topup"
+  | "child_qr_transfer"
+  | "personal_topup";
+
+export type SanadPaymentProvider = "stripe_test" | "simulated";
+export type SanadPaymentStatus =
+  | "pending"
+  | "paid"
+  | "demo_completed"
+  | "cancelled"
+  | "expired"
+  | "failed";
+
+export interface SanadPaymentRecord {
+  paymentId: string;
+  flow: SanadPaymentFlow;
+  provider: SanadPaymentProvider;
+  status: SanadPaymentStatus;
+  amountFils: number;
+  currency: "KWD";
+  label: string;
+  idempotencyKey: string;
+  ownerUserId?: string;
+  workerId?: number;
+  childId?: number;
+  publicId?: string;
+  rating?: number | null;
+  message?: string | null;
+  customerName?: string | null;
+  checkoutSessionId?: string;
+  checkoutUrl?: string;
+  reference?: string;
+  notice?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SanadUserWalletRecord {
+  ownerUserId: string;
+  balanceFils: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type SanadUserWalletLedgerKind = "topup" | "sent" | "received";
+
+export interface SanadUserWalletLedgerRecord {
+  id: string;
+  ownerUserId: string;
+  kind: SanadUserWalletLedgerKind;
+  amountFils: number;
+  sourceKey: string;
+  reference: string;
+  description: string;
+  status: "paid" | "demo_completed" | "completed";
+  peerUserId?: string;
+  peerLabel?: string;
+  createdAt: Date;
+}
+
+export interface SanadUserTransferRecord {
+  id: string;
+  reference: string;
+  fromUserId: string;
+  toUserId: string;
+  fromLabel: string;
+  toLabel: string;
+  amountFils: number;
+  note?: string;
+  origin: "send" | "request";
+  requestId?: string;
+  idempotencyKey: string;
+  status: "completed";
+  createdAt: Date;
+}
+
+export type SanadMoneyRequestStatus =
+  | "pending"
+  | "paid"
+  | "declined"
+  | "cancelled";
+
+export interface SanadMoneyRequestRecord {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  fromLabel: string;
+  toLabel: string;
+  amountFils: number;
+  note?: string;
+  status: SanadMoneyRequestStatus;
+  idempotencyKey: string;
+  reference?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

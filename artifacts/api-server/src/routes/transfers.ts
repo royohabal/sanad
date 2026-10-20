@@ -1,12 +1,7 @@
-import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
-import { getMongoDb, nextId, type DemoTransferRecord } from "@workspace/db";
-import {
-  CreateDemoTransferBody,
-  CreateDemoTransferResponse,
-  ListDemoTransfersResponse,
-} from "@workspace/api-zod";
-import { rateLimitPublicRequests } from "../lib/publicRateLimit";
+import { getMongoDb, type DemoTransferRecord } from "@workspace/db";
+import { ListDemoTransfersResponse } from "@workspace/api-zod";
+import { requireAdmin } from "../middleware/authz";
 
 const router: IRouter = Router();
 const transfers = () =>
@@ -26,11 +21,7 @@ function transferDto(transfer: DemoTransferRecord) {
 
 router.get(
   "/demo-transfers",
-  rateLimitPublicRequests({
-    scope: "demo-transfer-history",
-    limit: 120,
-    windowMs: 60 * 1000,
-  }),
+  requireAdmin,
   async (_req, res): Promise<void> => {
     const rows = await transfers()
       .find({})
@@ -43,37 +34,10 @@ router.get(
 
 router.post(
   "/demo-transfers",
-  rateLimitPublicRequests({
-    scope: "demo-transfer-submit",
-    limit: 60,
-    windowMs: 15 * 60 * 1000,
-  }),
-  async (req, res): Promise<void> => {
-  const parsed = CreateDemoTransferBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  const normalized = CreateDemoTransferBody.safeParse({
-    ...parsed.data,
-    sender: parsed.data.sender.trim(),
-    recipient: parsed.data.recipient.trim(),
-  });
-  if (!normalized.success) {
-    res.status(400).json({ error: normalized.error.message });
-    return;
-  }
-  const transfer: DemoTransferRecord = {
-    ...normalized.data,
-    id: await nextId("sanad_demo_transfers"),
-    reference: randomUUID(),
-    status: "demo_completed",
-    createdAt: new Date(),
-  };
-  await transfers().insertOne(transfer);
-  res.status(201).json(
-    CreateDemoTransferResponse.parse(transferDto(transfer)),
-  );
+  (_req, res): void => {
+    res.status(410).json({
+      error: "Public demo transfer writes are disabled. Sign in to use a SANAD wallet.",
+    });
   },
 );
 

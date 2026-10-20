@@ -11,8 +11,6 @@ import {
   type WorkerRecord,
 } from "@workspace/db";
 import {
-  CreateDemoTipBody,
-  CreateDemoTipResponse,
   CreateMyWorkerProfileBody,
   CreateMyWorkerProfileResponse,
   CreateWorkerBody,
@@ -113,7 +111,7 @@ function tipDto(tip: TipRecord, worker: WorkerRecord) {
     amountFils: tip.amountFils,
     rating: tip.rating,
     message: tip.message,
-    status: "demo_completed" as const,
+    status: tip.status === "paid" ? "paid" as const : "demo_completed" as const,
     createdAt: tip.createdAt.toISOString(),
   };
 }
@@ -539,137 +537,11 @@ router.get(
   },
 );
 
-router.post(
-  "/tips",
-  rateLimitPublicRequests({
-    scope: "worker-tip",
-    limit: 60,
-    windowMs: 15 * 60 * 1000,
-  }),
-  async (req, res): Promise<void> => {
-  const parsed = CreateDemoTipBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  if (!isPublicId(parsed.data.publicId)) {
-    res.status(404).json({ error: "Worker not found" });
-    return;
-  }
-
-  const worker = await workers().findOne({
-    publicId: parsed.data.publicId,
-    archivedAt: { $exists: false },
+router.post("/tips", (_req, res): void => {
+  res.status(410).json({
+    error: "Direct tip writes are disabled. Start a SANAD checkout instead.",
   });
-  if (!worker) {
-    res.status(404).json({ error: "Worker not found" });
-    return;
-  }
-  const customerName = parsed.data.customerName?.trim() || "Anonymous";
-  const message = parsed.data.message?.trim() || null;
-  const rating = parsed.data.rating ?? null;
-  const idempotencyKey = parsed.data.idempotencyKey;
-  const existing = await tips().findOne({ idempotencyKey });
-  const matchesExisting = (tip: TipRecord) =>
-    tip.workerId === worker.id &&
-    tip.amountFils === parsed.data.amountFils &&
-    (tip.rating ?? null) === rating &&
-    (tip.message ?? null) === message &&
-    (tip.customerName?.trim() || "Anonymous") === customerName;
-  if (existing) {
-    if (!matchesExisting(existing)) {
-      res.status(409).json({ error: "This submission key was already used for a different tip." });
-      return;
-    }
-    res.status(200).json(CreateDemoTipResponse.parse(tipDto(existing, worker)));
-    return;
-  }
-  let created: { tip: TipRecord; worker: WorkerRecord } | null = null;
-  try {
-    created = await withMongoTransaction(async (session) => {
-      const lock = await workers().updateOne(
-        { id: worker.id, archivedAt: { $exists: false } },
-        { $inc: { walletVersion: 1 } },
-        { session },
-      );
-      if (lock.matchedCount !== 1) return null;
-      const currentWorker = await workers().findOne(
-        { id: worker.id, archivedAt: { $exists: false } },
-        { session },
-      );
-      if (!currentWorker) return null;
-      const payoutCompany =
-        currentWorker.companyId != null &&
-        currentWorker.companyStatus === "approved"
-          ? await companies().findOne(
-              {
-                id: currentWorker.companyId,
-                status: "approved",
-              },
-              { session },
-            )
-          : null;
-      const tip: TipRecord = {
-        id: await nextId("sanad_tips", session),
-        reference: randomUUID(),
-        workerId: currentWorker.id,
-        amountFils: parsed.data.amountFils,
-        rating,
-        message,
-        customerName,
-        idempotencyKey,
-        status: "demo_completed",
-        createdAt: new Date(),
-        payoutMethod: payoutCompany ? "company" : "independent",
-        ...(payoutCompany
-          ? {
-              payoutCompanyId: payoutCompany.id,
-              payoutCompanyName: payoutCompany.name,
-            }
-          : {}),
-      };
-      await tips().insertOne(tip, { session });
-      if (tip.payoutMethod === "independent") {
-        await appendWorkerLedgerEvent({
-          workerId: tip.workerId,
-          kind: "tip_credit",
-          amountFils: tip.amountFils,
-          sourceKey: `worker:${tip.workerId}:tip:${tip.id}:credit`,
-          reference: tip.reference,
-          description: "Simulated direct tip credited to independent wallet",
-          session,
-        });
-      }
-      return { tip, worker: currentWorker };
-    });
-  } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === 11000
-    ) {
-      const duplicate = await tips().findOne({ idempotencyKey });
-      if (duplicate && matchesExisting(duplicate)) {
-        res
-          .status(200)
-          .json(CreateDemoTipResponse.parse(tipDto(duplicate, worker)));
-        return;
-      }
-      res.status(409).json({ error: "This submission key was already used for a different tip." });
-      return;
-    }
-    throw error;
-  }
-  if (!created) {
-    res.status(404).json({ error: "Worker not found" });
-    return;
-  }
-  res.status(201).json(
-    CreateDemoTipResponse.parse(tipDto(created.tip, created.worker)),
-  );
-  },
-);
+});
 
 router.get(
   "/tips",

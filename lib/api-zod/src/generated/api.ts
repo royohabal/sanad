@@ -126,7 +126,7 @@ export const GetMyWorkerDashboardResponse = zod.object({
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
-  "status": zod.enum(['demo_completed']),
+  "status": zod.enum(['paid', 'demo_completed']),
   "createdAt": zod.coerce.date()
 })),
   "settlements": zod.array(zod.object({
@@ -790,7 +790,7 @@ export const GetWorkerDashboardResponse = zod.object({
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
-  "status": zod.enum(['demo_completed']),
+  "status": zod.enum(['paid', 'demo_completed']),
   "createdAt": zod.coerce.date()
 })),
   "settlements": zod.array(zod.object({
@@ -864,44 +864,34 @@ export const ListTipsResponseItem = zod.object({
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
-  "status": zod.enum(['demo_completed']),
+  "status": zod.enum(['paid', 'demo_completed']),
   "createdAt": zod.coerce.date()
 })
 export const ListTipsResponse = zod.array(ListTipsResponseItem)
 
 
 /**
- * No money moves; this is a class-project demonstration only.
- * @summary Record an explicitly simulated tip
+ * Direct tip writes are disabled. Start a shared checkout instead.
+ * @summary Deprecated direct tip write
  */
-export const createDemoTipBodyCustomerNameMax = 80;
+export const deprecatedCreateDirectTipBodyCustomerNameMax = 80;
 
-export const createDemoTipBodyRatingMax = 5;
+export const deprecatedCreateDirectTipBodyRatingMax = 5;
 
-export const createDemoTipBodyMessageMax = 240;
+export const deprecatedCreateDirectTipBodyMessageMax = 240;
 
 
 
-export const CreateDemoTipBody = zod.object({
+export const DeprecatedCreateDirectTipBody = zod.object({
   "publicId": zod.string(),
   "amountFils": zod.union([zod.literal(250),zod.literal(500),zod.literal(1000)]),
   "idempotencyKey": zod.string().uuid(),
-  "customerName": zod.string().max(createDemoTipBodyCustomerNameMax).nullish(),
-  "rating": zod.number().int().min(1).max(createDemoTipBodyRatingMax).nullish(),
-  "message": zod.string().max(createDemoTipBodyMessageMax).nullish()
+  "customerName": zod.string().max(deprecatedCreateDirectTipBodyCustomerNameMax).nullish(),
+  "rating": zod.number().int().min(1).max(deprecatedCreateDirectTipBodyRatingMax).nullish(),
+  "message": zod.string().max(deprecatedCreateDirectTipBodyMessageMax).nullish()
 })
 
-export const CreateDemoTipResponse = zod.object({
-  "reference": zod.string(),
-  "publicId": zod.string(),
-  "workerName": zod.string(),
-  "customerName": zod.string(),
-  "amountFils": zod.number().int(),
-  "rating": zod.number().int().nullish(),
-  "message": zod.string().nullish(),
-  "status": zod.enum(['demo_completed']),
-  "createdAt": zod.coerce.date()
-})
+export const DeprecatedCreateDirectTipResponse = zod.void()
 
 
 /**
@@ -919,7 +909,7 @@ export const GetTipReceiptResponse = zod.object({
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
-  "status": zod.enum(['demo_completed']),
+  "status": zod.enum(['paid', 'demo_completed']),
   "createdAt": zod.coerce.date()
 })
 
@@ -1050,7 +1040,7 @@ export const GetAdminOverviewResponse = zod.object({
   "amountFils": zod.number().int(),
   "rating": zod.number().int().nullish(),
   "message": zod.string().nullish(),
-  "status": zod.enum(['demo_completed']),
+  "status": zod.enum(['paid', 'demo_completed']),
   "createdAt": zod.coerce.date()
 }))
 })
@@ -1115,27 +1105,23 @@ export const GetPublicChildRecipientResponse = zod.object({
 
 
 /**
- * @summary Record a simulated no-login transfer to a child
+ * Direct QR credits are disabled; start a shared checkout instead.
+ * @summary Deprecated direct child QR credit
  */
-export const CreatePublicChildTransferParams = zod.object({
+export const DeprecatedCreatePublicChildTransferParams = zod.object({
   "publicId": zod.coerce.string().uuid()
 })
 
-export const createPublicChildTransferBodyAmountFilsMin = 250;
-export const createPublicChildTransferBodyAmountFilsMax = 1000000;
+export const deprecatedCreatePublicChildTransferBodyAmountFilsMin = 250;
+export const deprecatedCreatePublicChildTransferBodyAmountFilsMax = 1000000;
 
 
 
-export const CreatePublicChildTransferBody = zod.object({
-  "amountFils": zod.number().int().min(createPublicChildTransferBodyAmountFilsMin).max(createPublicChildTransferBodyAmountFilsMax)
+export const DeprecatedCreatePublicChildTransferBody = zod.object({
+  "amountFils": zod.number().int().min(deprecatedCreatePublicChildTransferBodyAmountFilsMin).max(deprecatedCreatePublicChildTransferBodyAmountFilsMax)
 })
 
-export const CreatePublicChildTransferResponse = zod.object({
-  "firstName": zod.string(),
-  "amountFils": zod.number().int(),
-  "createdAt": zod.coerce.date(),
-  "demoOnly": zod.literal(true)
-})
+export const DeprecatedCreatePublicChildTransferResponse = zod.void()
 
 
 /**
@@ -1410,7 +1396,273 @@ export const UpdateApprovalRequestResponse = zod.object({
 
 
 /**
- * @summary List simulated person-to-person transfers
+ * Worker tips, child QR transfers, parent child-wallet top-ups, and personal-wallet top-ups use this checkout. Parent and personal wallet flows require sign-in. Stripe is test-mode only; unavailable Stripe test checkout uses an explicitly simulated checkout.
+ * @summary Start a payment or explicitly simulated checkout
+ */
+
+export const createPaymentCheckoutBodyAmountFilsMax = 1000000;
+
+export const createPaymentCheckoutBodyRatingMax = 5;
+
+export const createPaymentCheckoutBodyMessageMax = 240;
+
+export const createPaymentCheckoutBodyCustomerNameMax = 80;
+
+
+
+export const CreatePaymentCheckoutBody = zod.object({
+  "flow": zod.enum(['worker_tip', 'child_topup', 'child_qr_transfer', 'personal_topup']),
+  "publicId": zod.string().uuid().optional(),
+  "childId": zod.number().int().min(1).optional(),
+  "amountFils": zod.number().int().min(1).max(createPaymentCheckoutBodyAmountFilsMax),
+  "idempotencyKey": zod.string().uuid(),
+  "rating": zod.number().int().min(1).max(createPaymentCheckoutBodyRatingMax).nullish(),
+  "message": zod.string().max(createPaymentCheckoutBodyMessageMax).nullish(),
+  "customerName": zod.string().max(createPaymentCheckoutBodyCustomerNameMax).nullish()
+})
+
+export const CreatePaymentCheckoutResponse = zod.object({
+  "paymentId": zod.string().uuid(),
+  "flow": zod.enum(['worker_tip', 'child_topup', 'child_qr_transfer', 'personal_topup']),
+  "provider": zod.enum(['stripe_test', 'simulated']),
+  "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
+  "amountFils": zod.number().int(),
+  "currency": zod.enum(['KWD']),
+  "label": zod.string(),
+  "checkoutUrl": zod.string().nullish(),
+  "reference": zod.string().nullish(),
+  "notice": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Read limited checkout status
+ */
+export const GetPaymentCheckoutParams = zod.object({
+  "paymentId": zod.coerce.string().uuid()
+})
+
+export const GetPaymentCheckoutResponse = zod.object({
+  "paymentId": zod.string().uuid(),
+  "flow": zod.enum(['worker_tip', 'child_topup', 'child_qr_transfer', 'personal_topup']),
+  "provider": zod.enum(['stripe_test', 'simulated']),
+  "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
+  "amountFils": zod.number().int(),
+  "currency": zod.enum(['KWD']),
+  "label": zod.string(),
+  "checkoutUrl": zod.string().nullish(),
+  "reference": zod.string().nullish(),
+  "notice": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * This can only complete a record whose provider is simulated. It never marks a Stripe checkout as paid.
+ * @summary Explicitly complete a simulated checkout
+ */
+export const CompleteSimulatedPaymentParams = zod.object({
+  "paymentId": zod.coerce.string().uuid()
+})
+
+export const CompleteSimulatedPaymentResponse = zod.object({
+  "paymentId": zod.string().uuid(),
+  "flow": zod.enum(['worker_tip', 'child_topup', 'child_qr_transfer', 'personal_topup']),
+  "provider": zod.enum(['stripe_test', 'simulated']),
+  "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
+  "amountFils": zod.number().int(),
+  "currency": zod.enum(['KWD']),
+  "label": zod.string(),
+  "checkoutUrl": zod.string().nullish(),
+  "reference": zod.string().nullish(),
+  "notice": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid session with matching amount, currency, and metadata.
+ * @summary Verify a Stripe test Checkout Session on the server
+ */
+export const VerifyStripeCheckoutParams = zod.object({
+  "paymentId": zod.coerce.string().uuid()
+})
+
+export const verifyStripeCheckoutBodySessionIdMin = 10;
+export const verifyStripeCheckoutBodySessionIdMax = 255;
+
+
+
+export const VerifyStripeCheckoutBody = zod.object({
+  "sessionId": zod.string().min(verifyStripeCheckoutBodySessionIdMin).max(verifyStripeCheckoutBodySessionIdMax)
+})
+
+export const VerifyStripeCheckoutResponse = zod.object({
+  "paymentId": zod.string().uuid(),
+  "flow": zod.enum(['worker_tip', 'child_topup', 'child_qr_transfer', 'personal_topup']),
+  "provider": zod.enum(['stripe_test', 'simulated']),
+  "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
+  "amountFils": zod.number().int(),
+  "currency": zod.enum(['KWD']),
+  "label": zod.string(),
+  "checkoutUrl": zod.string().nullish(),
+  "reference": zod.string().nullish(),
+  "notice": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Stripe sessions are expired server-side before the SANAD record is cancelled. A completed paid session is verified instead.
+ * @summary Cancel an incomplete checkout
+ */
+export const CancelPaymentCheckoutParams = zod.object({
+  "paymentId": zod.coerce.string().uuid()
+})
+
+export const CancelPaymentCheckoutResponse = zod.object({
+  "paymentId": zod.string().uuid(),
+  "flow": zod.enum(['worker_tip', 'child_topup', 'child_qr_transfer', 'personal_topup']),
+  "provider": zod.enum(['stripe_test', 'simulated']),
+  "status": zod.enum(['pending', 'paid', 'demo_completed', 'cancelled', 'expired', 'failed']),
+  "amountFils": zod.number().int(),
+  "currency": zod.enum(['KWD']),
+  "label": zod.string(),
+  "checkoutUrl": zod.string().nullish(),
+  "reference": zod.string().nullish(),
+  "notice": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Read the signed-in personal wallet and private activity
+ */
+export const GetWalletDashboardResponse = zod.object({
+  "balanceFils": zod.number().int(),
+  "transactions": zod.array(zod.object({
+  "reference": zod.string(),
+  "kind": zod.enum(['topup', 'sent', 'received']),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['paid', 'demo_completed', 'completed']),
+  "description": zod.string(),
+  "peerLabel": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})),
+  "requests": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "direction": zod.enum(['sent', 'received']),
+  "counterparty": zod.string(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'paid', 'declined', 'cancelled']),
+  "note": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * Requires sign-in and returns only a safe display name and account identifier. The email is used server-side and is not returned.
+ * @summary Resolve a SANAD recipient by exact account email
+ */
+export const lookupWalletRecipientQueryEmailMax = 254;
+
+
+
+export const LookupWalletRecipientQueryParams = zod.object({
+  "email": zod.coerce.string().email().max(lookupWalletRecipientQueryEmailMax)
+})
+
+export const LookupWalletRecipientResponse = zod.object({
+  "userId": zod.string(),
+  "displayName": zod.string()
+})
+
+
+/**
+ * Internal ledger transfer, not a card payment. Both participants receive private transaction history.
+ * @summary Transfer balance between signed-in SANAD wallets
+ */
+
+export const createWalletTransferBodyAmountFilsMax = 1000000;
+
+export const createWalletTransferBodyNoteMax = 240;
+
+
+
+export const CreateWalletTransferBody = zod.object({
+  "recipientUserId": zod.string().min(1),
+  "amountFils": zod.number().int().min(1).max(createWalletTransferBodyAmountFilsMax),
+  "idempotencyKey": zod.string().uuid(),
+  "note": zod.string().max(createWalletTransferBodyNoteMax).nullish()
+})
+
+export const CreateWalletTransferResponse = zod.object({
+  "reference": zod.string(),
+  "kind": zod.enum(['topup', 'sent', 'received']),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['paid', 'demo_completed', 'completed']),
+  "description": zod.string(),
+  "peerLabel": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Creating a request does not move money. The recipient must explicitly pay it from their SANAD wallet.
+ * @summary Request money from a signed-in SANAD account
+ */
+
+export const createWalletMoneyRequestBodyAmountFilsMax = 1000000;
+
+export const createWalletMoneyRequestBodyNoteMax = 240;
+
+
+
+export const CreateWalletMoneyRequestBody = zod.object({
+  "recipientUserId": zod.string().min(1),
+  "amountFils": zod.number().int().min(1).max(createWalletMoneyRequestBodyAmountFilsMax),
+  "idempotencyKey": zod.string().uuid(),
+  "note": zod.string().max(createWalletMoneyRequestBodyNoteMax).nullish()
+})
+
+export const CreateWalletMoneyRequestResponse = zod.object({
+  "id": zod.string().uuid(),
+  "direction": zod.enum(['sent', 'received']),
+  "counterparty": zod.string(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'paid', 'declined', 'cancelled']),
+  "note": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Pay, decline, or cancel a pending money request
+ */
+export const ActOnWalletMoneyRequestParams = zod.object({
+  "requestId": zod.coerce.string().uuid()
+})
+
+export const ActOnWalletMoneyRequestBody = zod.object({
+  "action": zod.enum(['pay', 'decline', 'cancel'])
+})
+
+export const ActOnWalletMoneyRequestResponse = zod.object({
+  "id": zod.string().uuid(),
+  "direction": zod.enum(['sent', 'received']),
+  "counterparty": zod.string(),
+  "amountFils": zod.number().int(),
+  "status": zod.enum(['pending', 'paid', 'declined', 'cancelled']),
+  "note": zod.string().nullish(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * Historical records are retained; new private activity is available only through GET /wallet.
+ * @summary List legacy public demo entries for administrators
  */
 export const ListDemoTransfersResponseItem = zod.object({
   "reference": zod.string(),
@@ -1424,31 +1676,25 @@ export const ListDemoTransfersResponse = zod.array(ListDemoTransfersResponseItem
 
 
 /**
- * @summary Record a simulated person-to-person transfer
+ * New person-to-person actions require signed-in SANAD wallets.
+ * @summary Deprecated unauthenticated transfer write
  */
-export const createDemoTransferBodySenderMin = 2;
-export const createDemoTransferBodySenderMax = 80;
+export const deprecatedCreateDemoTransferBodySenderMin = 2;
+export const deprecatedCreateDemoTransferBodySenderMax = 80;
 
-export const createDemoTransferBodyRecipientMin = 2;
-export const createDemoTransferBodyRecipientMax = 80;
+export const deprecatedCreateDemoTransferBodyRecipientMin = 2;
+export const deprecatedCreateDemoTransferBodyRecipientMax = 80;
 
-export const createDemoTransferBodyAmountFilsMax = 1000000;
+export const deprecatedCreateDemoTransferBodyAmountFilsMax = 1000000;
 
 
 
-export const CreateDemoTransferBody = zod.object({
-  "sender": zod.string().min(createDemoTransferBodySenderMin).max(createDemoTransferBodySenderMax),
-  "recipient": zod.string().min(createDemoTransferBodyRecipientMin).max(createDemoTransferBodyRecipientMax),
-  "amountFils": zod.number().int().min(1).max(createDemoTransferBodyAmountFilsMax)
+export const DeprecatedCreateDemoTransferBody = zod.object({
+  "sender": zod.string().min(deprecatedCreateDemoTransferBodySenderMin).max(deprecatedCreateDemoTransferBodySenderMax),
+  "recipient": zod.string().min(deprecatedCreateDemoTransferBodyRecipientMin).max(deprecatedCreateDemoTransferBodyRecipientMax),
+  "amountFils": zod.number().int().min(1).max(deprecatedCreateDemoTransferBodyAmountFilsMax)
 })
 
-export const CreateDemoTransferResponse = zod.object({
-  "reference": zod.string(),
-  "sender": zod.string(),
-  "recipient": zod.string(),
-  "amountFils": zod.number().int(),
-  "status": zod.enum(['demo_completed']),
-  "createdAt": zod.coerce.date()
-})
+export const DeprecatedCreateDemoTransferResponse = zod.void()
 
 

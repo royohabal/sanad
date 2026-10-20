@@ -10,5 +10,6 @@ export type TipStatus = typeof TipStatus[keyof typeof TipStatus];
 
 
 export const TipStatus = {
+  paid: 'paid',
   demo_completed: 'demo_completed',
 } as const;

@@ -207,6 +207,7 @@ export type TipStatus = typeof TipStatus[keyof typeof TipStatus];
 
 
 export const TipStatus = {
+  paid: 'paid',
   demo_completed: 'demo_completed',
 } as const;
 
@@ -845,6 +846,203 @@ export interface DemoTransferInput {
   amountFils: number;
 }
 
+export type PaymentCheckoutInputFlow = typeof PaymentCheckoutInputFlow[keyof typeof PaymentCheckoutInputFlow];
+
+
+export const PaymentCheckoutInputFlow = {
+  worker_tip: 'worker_tip',
+  child_topup: 'child_topup',
+  child_qr_transfer: 'child_qr_transfer',
+  personal_topup: 'personal_topup',
+} as const;
+
+export interface PaymentCheckoutInput {
+  flow: PaymentCheckoutInputFlow;
+  publicId?: string;
+  /** @minimum 1 */
+  childId?: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  amountFils: number;
+  idempotencyKey: string;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating?: number | null;
+  /** @maxLength 240 */
+  message?: string | null;
+  /** @maxLength 80 */
+  customerName?: string | null;
+}
+
+export type PaymentCheckoutFlow = typeof PaymentCheckoutFlow[keyof typeof PaymentCheckoutFlow];
+
+
+export const PaymentCheckoutFlow = {
+  worker_tip: 'worker_tip',
+  child_topup: 'child_topup',
+  child_qr_transfer: 'child_qr_transfer',
+  personal_topup: 'personal_topup',
+} as const;
+
+export type PaymentCheckoutProvider = typeof PaymentCheckoutProvider[keyof typeof PaymentCheckoutProvider];
+
+
+export const PaymentCheckoutProvider = {
+  stripe_test: 'stripe_test',
+  simulated: 'simulated',
+} as const;
+
+export type PaymentCheckoutStatus = typeof PaymentCheckoutStatus[keyof typeof PaymentCheckoutStatus];
+
+
+export const PaymentCheckoutStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  demo_completed: 'demo_completed',
+  cancelled: 'cancelled',
+  expired: 'expired',
+  failed: 'failed',
+} as const;
+
+export type PaymentCheckoutCurrency = typeof PaymentCheckoutCurrency[keyof typeof PaymentCheckoutCurrency];
+
+
+export const PaymentCheckoutCurrency = {
+  KWD: 'KWD',
+} as const;
+
+export interface PaymentCheckout {
+  paymentId: string;
+  flow: PaymentCheckoutFlow;
+  provider: PaymentCheckoutProvider;
+  status: PaymentCheckoutStatus;
+  amountFils: number;
+  currency: PaymentCheckoutCurrency;
+  label: string;
+  checkoutUrl?: string | null;
+  reference?: string | null;
+  notice?: string | null;
+  createdAt: string;
+}
+
+export interface VerifyStripeCheckoutInput {
+  /**
+     * @minLength 10
+     * @maxLength 255
+     */
+  sessionId: string;
+}
+
+export interface WalletRecipient {
+  userId: string;
+  displayName: string;
+}
+
+export interface WalletTransferInput {
+  /** @minLength 1 */
+  recipientUserId: string;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  amountFils: number;
+  idempotencyKey: string;
+  /** @maxLength 240 */
+  note?: string | null;
+}
+
+export interface WalletMoneyRequestInput {
+  /** @minLength 1 */
+  recipientUserId: string;
+  /**
+     * @minimum 1
+     * @maximum 1000000
+     */
+  amountFils: number;
+  idempotencyKey: string;
+  /** @maxLength 240 */
+  note?: string | null;
+}
+
+export type WalletTransactionKind = typeof WalletTransactionKind[keyof typeof WalletTransactionKind];
+
+
+export const WalletTransactionKind = {
+  topup: 'topup',
+  sent: 'sent',
+  received: 'received',
+} as const;
+
+export type WalletTransactionStatus = typeof WalletTransactionStatus[keyof typeof WalletTransactionStatus];
+
+
+export const WalletTransactionStatus = {
+  paid: 'paid',
+  demo_completed: 'demo_completed',
+  completed: 'completed',
+} as const;
+
+export interface WalletTransaction {
+  reference: string;
+  kind: WalletTransactionKind;
+  amountFils: number;
+  status: WalletTransactionStatus;
+  description: string;
+  peerLabel?: string | null;
+  createdAt: string;
+}
+
+export type WalletMoneyRequestDirection = typeof WalletMoneyRequestDirection[keyof typeof WalletMoneyRequestDirection];
+
+
+export const WalletMoneyRequestDirection = {
+  sent: 'sent',
+  received: 'received',
+} as const;
+
+export type WalletMoneyRequestStatus = typeof WalletMoneyRequestStatus[keyof typeof WalletMoneyRequestStatus];
+
+
+export const WalletMoneyRequestStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  declined: 'declined',
+  cancelled: 'cancelled',
+} as const;
+
+export interface WalletMoneyRequest {
+  id: string;
+  direction: WalletMoneyRequestDirection;
+  counterparty: string;
+  amountFils: number;
+  status: WalletMoneyRequestStatus;
+  note?: string | null;
+  createdAt: string;
+}
+
+export interface WalletDashboard {
+  balanceFils: number;
+  transactions: WalletTransaction[];
+  requests: WalletMoneyRequest[];
+}
+
+export type WalletMoneyRequestActionInputAction = typeof WalletMoneyRequestActionInputAction[keyof typeof WalletMoneyRequestActionInputAction];
+
+
+export const WalletMoneyRequestActionInputAction = {
+  pay: 'pay',
+  decline: 'decline',
+  cancel: 'cancel',
+} as const;
+
+export interface WalletMoneyRequestActionInput {
+  action: WalletMoneyRequestActionInputAction;
+}
+
 export type GetWorkerWalletTransactionsParams = {
 /**
  * @minimum 1
@@ -859,5 +1057,12 @@ pageSize?: number;
 
 export type ListTipsParams = {
 publicId?: string;
+};
+
+export type LookupWalletRecipientParams = {
+/**
+ * @maxLength 254
+ */
+email: string;
 };
 

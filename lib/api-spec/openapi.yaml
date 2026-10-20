@@ -736,10 +736,10 @@ paths:
                 items:
                   $ref: "#/components/schemas/Tip"
     post:
-      operationId: createDemoTip
+      operationId: deprecatedCreateDirectTip
       tags: [sanad]
-      summary: Record an explicitly simulated tip
-      description: No money moves; this is a class-project demonstration only.
+      summary: Deprecated direct tip write
+      description: Direct tip writes are disabled. Start a shared checkout instead.
       requestBody:
         required: true
         content:
@@ -747,22 +747,8 @@ paths:
             schema:
               $ref: "#/components/schemas/DemoTipInput"
       responses:
-        "200":
-          description: Existing record returned for a safely retried submission
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Tip"
-        "201":
-          description: Demo tip receipt
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Tip"
-        "404":
-          description: Worker not found
-        "429":
-          description: Public tip submission rate limit exceeded
+        "410":
+          description: Direct tip creation is disabled; use the shared payment checkout
   /tips/{reference}:
     get:
       operationId: getTipReceipt
@@ -951,9 +937,10 @@ paths:
           description: Public child lookup rate limit exceeded
   /child-recipients/{publicId}/transfers:
     post:
-      operationId: createPublicChildTransfer
+      operationId: deprecatedCreatePublicChildTransfer
       tags: [sanad]
-      summary: Record a simulated no-login transfer to a child
+      summary: Deprecated direct child QR credit
+      description: Direct QR credits are disabled; start a shared checkout instead.
       parameters:
         - in: path
           name: publicId
@@ -968,18 +955,8 @@ paths:
             schema:
               $ref: "#/components/schemas/PublicChildTransferInput"
       responses:
-        "201":
-          description: Simulated transfer receipt
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PublicChildTransferReceipt"
-        "400":
-          description: Invalid transfer amount
-        "404":
-          description: Child not found
-        "429":
-          description: Public child transfer rate limit exceeded
+        "410":
+          description: Direct QR credits are disabled; use the shared payment checkout
   /children/{id}:
     patch:
       operationId: updateChild
@@ -1273,11 +1250,269 @@ paths:
           description: Sign-in required
         "403":
           description: Child profile is not accessible to this account
+  /payments/checkout:
+    post:
+      operationId: createPaymentCheckout
+      tags: [sanad]
+      summary: Start a payment or explicitly simulated checkout
+      description: Worker tips, child QR transfers, parent child-wallet top-ups, and personal-wallet top-ups use this checkout. Parent and personal wallet flows require sign-in. Stripe is test-mode only; unavailable Stripe test checkout uses an explicitly simulated checkout.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentCheckoutInput"
+      responses:
+        "201":
+          description: Checkout created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentCheckout"
+        "400":
+          description: Invalid payment details
+        "401":
+          description: Sign-in required for wallet top-ups
+        "404":
+          description: Recipient not found or not accessible
+        "409":
+          description: Idempotency key reused with different details
+        "429":
+          description: Checkout rate limit exceeded
+  /payments/{paymentId}:
+    get:
+      operationId: getPaymentCheckout
+      tags: [sanad]
+      summary: Read limited checkout status
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Checkout status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentCheckout"
+        "404":
+          description: Checkout not found or not accessible
+  /payments/{paymentId}/complete-simulated:
+    post:
+      operationId: completeSimulatedPayment
+      tags: [sanad]
+      summary: Explicitly complete a simulated checkout
+      description: This can only complete a record whose provider is simulated. It never marks a Stripe checkout as paid.
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Simulated checkout result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentCheckout"
+        "404":
+          description: Checkout not found or not accessible
+        "409":
+          description: Checkout is not simulated or is no longer pending
+  /payments/{paymentId}/verify:
+    post:
+      operationId: verifyStripeCheckout
+      tags: [sanad]
+      summary: Verify a Stripe test Checkout Session on the server
+      description: SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid session with matching amount, currency, and metadata.
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyStripeCheckoutInput"
+      responses:
+        "200":
+          description: Verified checkout result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentCheckout"
+        "400":
+          description: Invalid Checkout Session identifier
+        "404":
+          description: Checkout not found or not accessible
+        "409":
+          description: Stripe has not confirmed a matching successful payment
+  /payments/{paymentId}/cancel:
+    post:
+      operationId: cancelPaymentCheckout
+      tags: [sanad]
+      summary: Cancel an incomplete checkout
+      description: Stripe sessions are expired server-side before the SANAD record is cancelled. A completed paid session is verified instead.
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Checkout cancellation or completed result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentCheckout"
+        "404":
+          description: Checkout not found or not accessible
+        "409":
+          description: Checkout could not be safely cancelled
+  /wallet:
+    get:
+      operationId: getWalletDashboard
+      tags: [sanad]
+      summary: Read the signed-in personal wallet and private activity
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Personal wallet, transactions, and requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletDashboard"
+        "401":
+          description: Sign-in required
+  /wallet/recipients:
+    get:
+      operationId: lookupWalletRecipient
+      tags: [sanad]
+      summary: Resolve a SANAD recipient by exact account email
+      description: Requires sign-in and returns only a safe display name and account identifier. The email is used server-side and is not returned.
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema: { type: string, format: email, maxLength: 254 }
+      responses:
+        "200":
+          description: Matching account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletRecipient"
+        "401":
+          description: Sign-in required
+        "404":
+          description: No matching SANAD account
+        "429":
+          description: Recipient lookup rate limit exceeded
+  /wallet/transfers:
+    post:
+      operationId: createWalletTransfer
+      tags: [sanad]
+      summary: Transfer balance between signed-in SANAD wallets
+      description: Internal ledger transfer, not a card payment. Both participants receive private transaction history.
+      security:
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletTransferInput"
+      responses:
+        "201":
+          description: Transfer completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletTransaction"
+        "400":
+          description: Invalid transfer details
+        "401":
+          description: Sign-in required
+        "404":
+          description: Recipient account not found
+        "409":
+          description: Insufficient funds or idempotency conflict
+  /wallet/requests:
+    post:
+      operationId: createWalletMoneyRequest
+      tags: [sanad]
+      summary: Request money from a signed-in SANAD account
+      description: Creating a request does not move money. The recipient must explicitly pay it from their SANAD wallet.
+      security:
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletMoneyRequestInput"
+      responses:
+        "201":
+          description: Pending money request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletMoneyRequest"
+        "400":
+          description: Invalid request details
+        "401":
+          description: Sign-in required
+        "404":
+          description: Recipient account not found
+        "409":
+          description: Idempotency conflict
+  /wallet/requests/{requestId}/action:
+    post:
+      operationId: actOnWalletMoneyRequest
+      tags: [sanad]
+      summary: Pay, decline, or cancel a pending money request
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WalletMoneyRequestActionInput"
+      responses:
+        "200":
+          description: Updated money request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletMoneyRequest"
+        "400":
+          description: Invalid action
+        "401":
+          description: Sign-in required
+        "404":
+          description: Request not found or not accessible
+        "409":
+          description: Request is no longer pending or wallet has insufficient funds
   /demo-transfers:
     get:
       operationId: listDemoTransfers
       tags: [sanad]
-      summary: List simulated person-to-person transfers
+      summary: List legacy public demo entries for administrators
+      description: Historical records are retained; new private activity is available only through GET /wallet.
+      security:
+        - ClerkSession: []
       responses:
         "200":
           description: Demo transfers
@@ -1290,9 +1525,10 @@ paths:
         "429":
           description: Public transfer history rate limit exceeded
     post:
-      operationId: createDemoTransfer
+      operationId: deprecatedCreateDemoTransfer
       tags: [sanad]
-      summary: Record a simulated person-to-person transfer
+      summary: Deprecated unauthenticated transfer write
+      description: New person-to-person actions require signed-in SANAD wallets.
       requestBody:
         required: true
         content:
@@ -1300,16 +1536,8 @@ paths:
             schema:
               $ref: "#/components/schemas/DemoTransferInput"
       responses:
-        "201":
-          description: Simulated transfer
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DemoTransfer"
-        "400":
-          description: Invalid sender, recipient, or amount
-        "429":
-          description: Public transfer submission rate limit exceeded
+        "410":
+          description: Public demo transfer writes are disabled
 components:
   securitySchemes:
     ClerkSession:
@@ -1455,7 +1683,7 @@ components:
         amountFils: { type: integer }
         rating: { type: ["integer", "null"] }
         message: { type: ["string", "null"] }
-        status: { type: string, enum: [demo_completed] }
+        status: { type: string, enum: [paid, demo_completed] }
         createdAt: { type: string, format: date-time }
     DemoTipInput:
       type: object
@@ -1880,4 +2108,102 @@ components:
         sender: { type: string, minLength: 2, maxLength: 80 }
         recipient: { type: string, minLength: 2, maxLength: 80 }
         amountFils: { type: integer, minimum: 1, maximum: 1000000 }
+    PaymentCheckoutInput:
+      type: object
+      required: [flow, amountFils, idempotencyKey]
+      properties:
+        flow:
+          type: string
+          enum: [worker_tip, child_topup, child_qr_transfer, personal_topup]
+        publicId: { type: string, format: uuid }
+        childId: { type: integer, minimum: 1 }
+        amountFils: { type: integer, minimum: 1, maximum: 1000000 }
+        idempotencyKey: { type: string, format: uuid }
+        rating: { type: integer, minimum: 1, maximum: 5, nullable: true }
+        message: { type: string, maxLength: 240, nullable: true }
+        customerName: { type: string, maxLength: 80, nullable: true }
+    PaymentCheckout:
+      type: object
+      required: [paymentId, flow, provider, status, amountFils, currency, label, createdAt]
+      properties:
+        paymentId: { type: string, format: uuid }
+        flow:
+          type: string
+          enum: [worker_tip, child_topup, child_qr_transfer, personal_topup]
+        provider: { type: string, enum: [stripe_test, simulated] }
+        status:
+          type: string
+          enum: [pending, paid, demo_completed, cancelled, expired, failed]
+        amountFils: { type: integer }
+        currency: { type: string, enum: [KWD] }
+        label: { type: string }
+        checkoutUrl: { type: string, nullable: true }
+        reference: { type: string, nullable: true }
+        notice: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    VerifyStripeCheckoutInput:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId: { type: string, minLength: 10, maxLength: 255 }
+    WalletRecipient:
+      type: object
+      required: [userId, displayName]
+      properties:
+        userId: { type: string }
+        displayName: { type: string }
+    WalletTransferInput:
+      type: object
+      required: [recipientUserId, amountFils, idempotencyKey]
+      properties:
+        recipientUserId: { type: string, minLength: 1 }
+        amountFils: { type: integer, minimum: 1, maximum: 1000000 }
+        idempotencyKey: { type: string, format: uuid }
+        note: { type: string, maxLength: 240, nullable: true }
+    WalletMoneyRequestInput:
+      type: object
+      required: [recipientUserId, amountFils, idempotencyKey]
+      properties:
+        recipientUserId: { type: string, minLength: 1 }
+        amountFils: { type: integer, minimum: 1, maximum: 1000000 }
+        idempotencyKey: { type: string, format: uuid }
+        note: { type: string, maxLength: 240, nullable: true }
+    WalletDashboard:
+      type: object
+      required: [balanceFils, transactions, requests]
+      properties:
+        balanceFils: { type: integer }
+        transactions:
+          type: array
+          items: { $ref: "#/components/schemas/WalletTransaction" }
+        requests:
+          type: array
+          items: { $ref: "#/components/schemas/WalletMoneyRequest" }
+    WalletTransaction:
+      type: object
+      required: [reference, kind, amountFils, status, description, createdAt]
+      properties:
+        reference: { type: string }
+        kind: { type: string, enum: [topup, sent, received] }
+        amountFils: { type: integer }
+        status: { type: string, enum: [paid, demo_completed, completed] }
+        description: { type: string }
+        peerLabel: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    WalletMoneyRequest:
+      type: object
+      required: [id, direction, counterparty, amountFils, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        direction: { type: string, enum: [sent, received] }
+        counterparty: { type: string }
+        amountFils: { type: integer }
+        status: { type: string, enum: [pending, paid, declined, cancelled] }
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    WalletMoneyRequestActionInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [pay, decline, cancel] }
 

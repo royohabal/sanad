@@ -82,6 +82,78 @@ async function ensureIndexes(db: Db) {
       settlementId: 1,
       createdAt: -1,
     }),
+    db.collection("sanad_payments").createIndex(
+      { paymentId: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_payments").createIndex(
+      { idempotencyKey: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_payments").createIndex(
+      { checkoutSessionId: 1 },
+      { unique: true, sparse: true },
+    ),
+    db.collection("sanad_payments").createIndex({
+      flow: 1,
+      status: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_user_wallets").createIndex(
+      { ownerUserId: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_user_wallet_ledger").createIndex(
+      { id: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_user_wallet_ledger").createIndex(
+      { sourceKey: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_user_wallet_ledger").createIndex({
+      ownerUserId: 1,
+      createdAt: -1,
+      id: -1,
+    }),
+    db.collection("sanad_user_transfers").createIndex(
+      { id: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_user_transfers").createIndex(
+      { fromUserId: 1, idempotencyKey: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_user_transfers").createIndex(
+      { requestId: 1 },
+      { unique: true, sparse: true },
+    ),
+    db.collection("sanad_user_transfers").createIndex({
+      fromUserId: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_user_transfers").createIndex({
+      toUserId: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_money_requests").createIndex(
+      { id: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_money_requests").createIndex(
+      { fromUserId: 1, idempotencyKey: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_money_requests").createIndex({
+      fromUserId: 1,
+      status: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_money_requests").createIndex({
+      toUserId: 1,
+      status: 1,
+      createdAt: -1,
+    }),
     db.collection("sanad_settlements").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_settlements").createIndex(
       { workerId: 1, companyId: 1, month: 1 },

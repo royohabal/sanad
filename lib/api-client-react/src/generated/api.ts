@@ -58,15 +58,25 @@ import type {
   LegacyTipRouteInput,
   LegacyTipRouteResponse,
   ListTipsParams,
+  LookupWalletRecipientParams,
+  PaymentCheckout,
+  PaymentCheckoutInput,
   PublicChildRecipient,
   PublicChildTransferInput,
-  PublicChildTransferReceipt,
   PublicWorker,
   SavingsGoal,
   SavingsGoalInput,
   Settlement,
   SettlementStatusInput,
   Tip,
+  VerifyStripeCheckoutInput,
+  WalletDashboard,
+  WalletMoneyRequest,
+  WalletMoneyRequestActionInput,
+  WalletMoneyRequestInput,
+  WalletRecipient,
+  WalletTransaction,
+  WalletTransferInput,
   Worker,
   WorkerCompanyRequest,
   WorkerCompanyRequestInput,
@@ -2561,7 +2571,7 @@ export function useListTips<TData = Awaited<ReturnType<typeof listTips>>, TError
 
 
 
-export const getCreateDemoTipUrl = () => {
+export const getDeprecatedCreateDirectTipUrl = () => {
 
 
 
@@ -2570,10 +2580,10 @@ export const getCreateDemoTipUrl = () => {
 }
 
 /**
- * No money moves; this is a class-project demonstration only.
- * @summary Record an explicitly simulated tip
+ * Direct tip writes are disabled. Start a shared checkout instead.
+ * @summary Deprecated direct tip write
  */
-export const createDemoTip = async (demoTipInput: DemoTipInput, options?: Parameters<typeof customFetch>[1]): Promise<Tip> => {
+export const deprecatedCreateDirectTip = async (demoTipInput: DemoTipInput, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -2589,7 +2599,7 @@ export const createDemoTip = async (demoTipInput: DemoTipInput, options?: Parame
     }
     return headers;
   };
-return customFetch<Tip>(getCreateDemoTipUrl(),
+return customFetch<unknown>(getDeprecatedCreateDirectTipUrl(),
   {
     ...options,
     method: 'POST',
@@ -2602,13 +2612,13 @@ return customFetch<Tip>(getCreateDemoTipUrl(),
 
 
 
-export const getCreateDemoTipMutationKey = () => ['createDemoTip'] as const;
+export const getDeprecatedCreateDirectTipMutationKey = () => ['deprecatedCreateDirectTip'] as const;
 
-export const getCreateDemoTipMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDemoTip>>, TError,CreateDemoTipMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createDemoTip>>, TError,CreateDemoTipMutationVariables, TContext> => {
+export const getDeprecatedCreateDirectTipMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreateDirectTip>>, TError,DeprecatedCreateDirectTipMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreateDirectTip>>, TError,DeprecatedCreateDirectTipMutationVariables, TContext> => {
 
-const mutationKey = getCreateDemoTipMutationKey();
+const mutationKey = getDeprecatedCreateDirectTipMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -2618,10 +2628,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDemoTip>>, CreateDemoTipMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deprecatedCreateDirectTip>>, DeprecatedCreateDirectTipMutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  createDemoTip(data,requestOptions)
+          return  deprecatedCreateDirectTip(data,requestOptions)
         }
 
 
@@ -2631,23 +2641,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateDemoTipMutationResult = NonNullable<Awaited<ReturnType<typeof createDemoTip>>>
-    export type CreateDemoTipMutationBody = BodyType<DemoTipInput>
-    export type CreateDemoTipMutationError = ErrorType<void>
-    export type CreateDemoTipMutationVariables = {data: BodyType<DemoTipInput>}
+    export type DeprecatedCreateDirectTipMutationResult = NonNullable<Awaited<ReturnType<typeof deprecatedCreateDirectTip>>>
+    export type DeprecatedCreateDirectTipMutationBody = BodyType<DemoTipInput>
+    export type DeprecatedCreateDirectTipMutationError = ErrorType<void>
+    export type DeprecatedCreateDirectTipMutationVariables = {data: BodyType<DemoTipInput>}
 
     /**
- * @summary Record an explicitly simulated tip
+ * @summary Deprecated direct tip write
  */
-export const useCreateDemoTip = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDemoTip>>, TError,CreateDemoTipMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useDeprecatedCreateDirectTip = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreateDirectTip>>, TError,DeprecatedCreateDirectTipMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof createDemoTip>>,
+        Awaited<ReturnType<typeof deprecatedCreateDirectTip>>,
         TError,
-        CreateDemoTipMutationVariables,
+        DeprecatedCreateDirectTipMutationVariables,
         TContext
       > => {
-      return useMutation(getCreateDemoTipMutationOptions(options));
+      return useMutation(getDeprecatedCreateDirectTipMutationOptions(options));
     }
 
 export const getGetTipReceiptUrl = (reference: string,) => {
@@ -3364,7 +3374,7 @@ export function useGetPublicChildRecipient<TData = Awaited<ReturnType<typeof get
 
 
 
-export const getCreatePublicChildTransferUrl = (publicId: string,) => {
+export const getDeprecatedCreatePublicChildTransferUrl = (publicId: string,) => {
 
 
 
@@ -3373,10 +3383,11 @@ export const getCreatePublicChildTransferUrl = (publicId: string,) => {
 }
 
 /**
- * @summary Record a simulated no-login transfer to a child
+ * Direct QR credits are disabled; start a shared checkout instead.
+ * @summary Deprecated direct child QR credit
  */
-export const createPublicChildTransfer = async (publicId: string,
-    publicChildTransferInput: PublicChildTransferInput, options?: Parameters<typeof customFetch>[1]): Promise<PublicChildTransferReceipt> => {
+export const deprecatedCreatePublicChildTransfer = async (publicId: string,
+    publicChildTransferInput: PublicChildTransferInput, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -3392,7 +3403,7 @@ export const createPublicChildTransfer = async (publicId: string,
     }
     return headers;
   };
-return customFetch<PublicChildTransferReceipt>(getCreatePublicChildTransferUrl(publicId),
+return customFetch<unknown>(getDeprecatedCreatePublicChildTransferUrl(publicId),
   {
     ...options,
     method: 'POST',
@@ -3405,13 +3416,13 @@ return customFetch<PublicChildTransferReceipt>(getCreatePublicChildTransferUrl(p
 
 
 
-export const getCreatePublicChildTransferMutationKey = () => ['createPublicChildTransfer'] as const;
+export const getDeprecatedCreatePublicChildTransferMutationKey = () => ['deprecatedCreatePublicChildTransfer'] as const;
 
-export const getCreatePublicChildTransferMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPublicChildTransfer>>, TError,CreatePublicChildTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createPublicChildTransfer>>, TError,CreatePublicChildTransferMutationVariables, TContext> => {
+export const getDeprecatedCreatePublicChildTransferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreatePublicChildTransfer>>, TError,DeprecatedCreatePublicChildTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreatePublicChildTransfer>>, TError,DeprecatedCreatePublicChildTransferMutationVariables, TContext> => {
 
-const mutationKey = getCreatePublicChildTransferMutationKey();
+const mutationKey = getDeprecatedCreatePublicChildTransferMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -3421,10 +3432,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPublicChildTransfer>>, CreatePublicChildTransferMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deprecatedCreatePublicChildTransfer>>, DeprecatedCreatePublicChildTransferMutationVariables> = (props) => {
           const {publicId,data} = props ?? {};
 
-          return  createPublicChildTransfer(publicId,data,requestOptions)
+          return  deprecatedCreatePublicChildTransfer(publicId,data,requestOptions)
         }
 
 
@@ -3434,23 +3445,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreatePublicChildTransferMutationResult = NonNullable<Awaited<ReturnType<typeof createPublicChildTransfer>>>
-    export type CreatePublicChildTransferMutationBody = BodyType<PublicChildTransferInput>
-    export type CreatePublicChildTransferMutationError = ErrorType<void>
-    export type CreatePublicChildTransferMutationVariables = {publicId: string;data: BodyType<PublicChildTransferInput>}
+    export type DeprecatedCreatePublicChildTransferMutationResult = NonNullable<Awaited<ReturnType<typeof deprecatedCreatePublicChildTransfer>>>
+    export type DeprecatedCreatePublicChildTransferMutationBody = BodyType<PublicChildTransferInput>
+    export type DeprecatedCreatePublicChildTransferMutationError = ErrorType<void>
+    export type DeprecatedCreatePublicChildTransferMutationVariables = {publicId: string;data: BodyType<PublicChildTransferInput>}
 
     /**
- * @summary Record a simulated no-login transfer to a child
+ * @summary Deprecated direct child QR credit
  */
-export const useCreatePublicChildTransfer = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPublicChildTransfer>>, TError,CreatePublicChildTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useDeprecatedCreatePublicChildTransfer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreatePublicChildTransfer>>, TError,DeprecatedCreatePublicChildTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof createPublicChildTransfer>>,
+        Awaited<ReturnType<typeof deprecatedCreatePublicChildTransfer>>,
         TError,
-        CreatePublicChildTransferMutationVariables,
+        DeprecatedCreatePublicChildTransferMutationVariables,
         TContext
       > => {
-      return useMutation(getCreatePublicChildTransferMutationOptions(options));
+      return useMutation(getDeprecatedCreatePublicChildTransferMutationOptions(options));
     }
 
 export const getUpdateChildUrl = (id: number,) => {
@@ -4246,6 +4257,841 @@ export const useUpdateApprovalRequest = <TError = ErrorType<void>,
       return useMutation(getUpdateApprovalRequestMutationOptions(options));
     }
 
+export const getCreatePaymentCheckoutUrl = () => {
+
+
+
+
+  return `/api/payments/checkout`
+}
+
+/**
+ * Worker tips, child QR transfers, parent child-wallet top-ups, and personal-wallet top-ups use this checkout. Parent and personal wallet flows require sign-in. Stripe is test-mode only; unavailable Stripe test checkout uses an explicitly simulated checkout.
+ * @summary Start a payment or explicitly simulated checkout
+ */
+export const createPaymentCheckout = async (paymentCheckoutInput: PaymentCheckoutInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentCheckout> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PaymentCheckout>(getCreatePaymentCheckoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(paymentCheckoutInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePaymentCheckoutMutationKey = () => ['createPaymentCheckout'] as const;
+
+export const getCreatePaymentCheckoutMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPaymentCheckout>>, TError,CreatePaymentCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPaymentCheckout>>, TError,CreatePaymentCheckoutMutationVariables, TContext> => {
+
+const mutationKey = getCreatePaymentCheckoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPaymentCheckout>>, CreatePaymentCheckoutMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPaymentCheckout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePaymentCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof createPaymentCheckout>>>
+    export type CreatePaymentCheckoutMutationBody = BodyType<PaymentCheckoutInput>
+    export type CreatePaymentCheckoutMutationError = ErrorType<void>
+    export type CreatePaymentCheckoutMutationVariables = {data: BodyType<PaymentCheckoutInput>}
+
+    /**
+ * @summary Start a payment or explicitly simulated checkout
+ */
+export const useCreatePaymentCheckout = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPaymentCheckout>>, TError,CreatePaymentCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPaymentCheckout>>,
+        TError,
+        CreatePaymentCheckoutMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreatePaymentCheckoutMutationOptions(options));
+    }
+
+export const getGetPaymentCheckoutUrl = (paymentId: string,) => {
+
+
+
+
+  return `/api/payments/${paymentId}`
+}
+
+/**
+ * @summary Read limited checkout status
+ */
+export const getPaymentCheckout = async (paymentId: string, options?: Parameters<typeof customFetch>[1]): Promise<PaymentCheckout> => {
+
+  return customFetch<PaymentCheckout>(getGetPaymentCheckoutUrl(paymentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPaymentCheckoutQueryKey = (paymentId: string,) => {
+    return [
+    `/api/payments/${paymentId}`
+    ] as const;
+    }
+
+
+export const getGetPaymentCheckoutQueryOptions = <TData = Awaited<ReturnType<typeof getPaymentCheckout>>, TError = ErrorType<void>>(paymentId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPaymentCheckout>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPaymentCheckoutQueryKey(paymentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPaymentCheckout>>> = ({ signal }) => getPaymentCheckout(paymentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: paymentId !== null && paymentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPaymentCheckout>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPaymentCheckoutQueryResult = NonNullable<Awaited<ReturnType<typeof getPaymentCheckout>>>
+export type GetPaymentCheckoutQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read limited checkout status
+ */
+
+export function useGetPaymentCheckout<TData = Awaited<ReturnType<typeof getPaymentCheckout>>, TError = ErrorType<void>>(
+ paymentId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPaymentCheckout>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPaymentCheckoutQueryOptions(paymentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCompleteSimulatedPaymentUrl = (paymentId: string,) => {
+
+
+
+
+  return `/api/payments/${paymentId}/complete-simulated`
+}
+
+/**
+ * This can only complete a record whose provider is simulated. It never marks a Stripe checkout as paid.
+ * @summary Explicitly complete a simulated checkout
+ */
+export const completeSimulatedPayment = async (paymentId: string, options?: Parameters<typeof customFetch>[1]): Promise<PaymentCheckout> => {
+
+  return customFetch<PaymentCheckout>(getCompleteSimulatedPaymentUrl(paymentId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteSimulatedPaymentMutationKey = () => ['completeSimulatedPayment'] as const;
+
+export const getCompleteSimulatedPaymentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeSimulatedPayment>>, TError,CompleteSimulatedPaymentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeSimulatedPayment>>, TError,CompleteSimulatedPaymentMutationVariables, TContext> => {
+
+const mutationKey = getCompleteSimulatedPaymentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeSimulatedPayment>>, CompleteSimulatedPaymentMutationVariables> = (props) => {
+          const {paymentId} = props ?? {};
+
+          return  completeSimulatedPayment(paymentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteSimulatedPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof completeSimulatedPayment>>>
+
+    export type CompleteSimulatedPaymentMutationError = ErrorType<void>
+    export type CompleteSimulatedPaymentMutationVariables = {paymentId: string}
+
+    /**
+ * @summary Explicitly complete a simulated checkout
+ */
+export const useCompleteSimulatedPayment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeSimulatedPayment>>, TError,CompleteSimulatedPaymentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeSimulatedPayment>>,
+        TError,
+        CompleteSimulatedPaymentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCompleteSimulatedPaymentMutationOptions(options));
+    }
+
+export const getVerifyStripeCheckoutUrl = (paymentId: string,) => {
+
+
+
+
+  return `/api/payments/${paymentId}/verify`
+}
+
+/**
+ * SANAD retrieves the session using its server-only Stripe test key and credits only after Stripe confirms a paid session with matching amount, currency, and metadata.
+ * @summary Verify a Stripe test Checkout Session on the server
+ */
+export const verifyStripeCheckout = async (paymentId: string,
+    verifyStripeCheckoutInput: VerifyStripeCheckoutInput, options?: Parameters<typeof customFetch>[1]): Promise<PaymentCheckout> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PaymentCheckout>(getVerifyStripeCheckoutUrl(paymentId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(verifyStripeCheckoutInput)
+  }
+);}
+
+
+
+
+
+export const getVerifyStripeCheckoutMutationKey = () => ['verifyStripeCheckout'] as const;
+
+export const getVerifyStripeCheckoutMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyStripeCheckout>>, TError,VerifyStripeCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof verifyStripeCheckout>>, TError,VerifyStripeCheckoutMutationVariables, TContext> => {
+
+const mutationKey = getVerifyStripeCheckoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof verifyStripeCheckout>>, VerifyStripeCheckoutMutationVariables> = (props) => {
+          const {paymentId,data} = props ?? {};
+
+          return  verifyStripeCheckout(paymentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type VerifyStripeCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof verifyStripeCheckout>>>
+    export type VerifyStripeCheckoutMutationBody = BodyType<VerifyStripeCheckoutInput>
+    export type VerifyStripeCheckoutMutationError = ErrorType<void>
+    export type VerifyStripeCheckoutMutationVariables = {paymentId: string;data: BodyType<VerifyStripeCheckoutInput>}
+
+    /**
+ * @summary Verify a Stripe test Checkout Session on the server
+ */
+export const useVerifyStripeCheckout = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof verifyStripeCheckout>>, TError,VerifyStripeCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof verifyStripeCheckout>>,
+        TError,
+        VerifyStripeCheckoutMutationVariables,
+        TContext
+      > => {
+      return useMutation(getVerifyStripeCheckoutMutationOptions(options));
+    }
+
+export const getCancelPaymentCheckoutUrl = (paymentId: string,) => {
+
+
+
+
+  return `/api/payments/${paymentId}/cancel`
+}
+
+/**
+ * Stripe sessions are expired server-side before the SANAD record is cancelled. A completed paid session is verified instead.
+ * @summary Cancel an incomplete checkout
+ */
+export const cancelPaymentCheckout = async (paymentId: string, options?: Parameters<typeof customFetch>[1]): Promise<PaymentCheckout> => {
+
+  return customFetch<PaymentCheckout>(getCancelPaymentCheckoutUrl(paymentId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelPaymentCheckoutMutationKey = () => ['cancelPaymentCheckout'] as const;
+
+export const getCancelPaymentCheckoutMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelPaymentCheckout>>, TError,CancelPaymentCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelPaymentCheckout>>, TError,CancelPaymentCheckoutMutationVariables, TContext> => {
+
+const mutationKey = getCancelPaymentCheckoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelPaymentCheckout>>, CancelPaymentCheckoutMutationVariables> = (props) => {
+          const {paymentId} = props ?? {};
+
+          return  cancelPaymentCheckout(paymentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelPaymentCheckoutMutationResult = NonNullable<Awaited<ReturnType<typeof cancelPaymentCheckout>>>
+
+    export type CancelPaymentCheckoutMutationError = ErrorType<void>
+    export type CancelPaymentCheckoutMutationVariables = {paymentId: string}
+
+    /**
+ * @summary Cancel an incomplete checkout
+ */
+export const useCancelPaymentCheckout = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelPaymentCheckout>>, TError,CancelPaymentCheckoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelPaymentCheckout>>,
+        TError,
+        CancelPaymentCheckoutMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelPaymentCheckoutMutationOptions(options));
+    }
+
+export const getGetWalletDashboardUrl = () => {
+
+
+
+
+  return `/api/wallet`
+}
+
+/**
+ * @summary Read the signed-in personal wallet and private activity
+ */
+export const getWalletDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<WalletDashboard> => {
+
+  return customFetch<WalletDashboard>(getGetWalletDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWalletDashboardQueryKey = () => {
+    return [
+    `/api/wallet`
+    ] as const;
+    }
+
+
+export const getGetWalletDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getWalletDashboard>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWalletDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWalletDashboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWalletDashboard>>> = ({ signal }) => getWalletDashboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWalletDashboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWalletDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getWalletDashboard>>>
+export type GetWalletDashboardQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read the signed-in personal wallet and private activity
+ */
+
+export function useGetWalletDashboard<TData = Awaited<ReturnType<typeof getWalletDashboard>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWalletDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWalletDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getLookupWalletRecipientUrl = (params: LookupWalletRecipientParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/wallet/recipients?${stringifiedParams}` : `/api/wallet/recipients`
+}
+
+/**
+ * Requires sign-in and returns only a safe display name and account identifier. The email is used server-side and is not returned.
+ * @summary Resolve a SANAD recipient by exact account email
+ */
+export const lookupWalletRecipient = async (params: LookupWalletRecipientParams, options?: Parameters<typeof customFetch>[1]): Promise<WalletRecipient> => {
+
+  return customFetch<WalletRecipient>(getLookupWalletRecipientUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getLookupWalletRecipientQueryKey = (params?: LookupWalletRecipientParams,) => {
+    return [
+    `/api/wallet/recipients`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getLookupWalletRecipientQueryOptions = <TData = Awaited<ReturnType<typeof lookupWalletRecipient>>, TError = ErrorType<void>>(params: LookupWalletRecipientParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof lookupWalletRecipient>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLookupWalletRecipientQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof lookupWalletRecipient>>> = ({ signal }) => lookupWalletRecipient(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof lookupWalletRecipient>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type LookupWalletRecipientQueryResult = NonNullable<Awaited<ReturnType<typeof lookupWalletRecipient>>>
+export type LookupWalletRecipientQueryError = ErrorType<void>
+
+
+/**
+ * @summary Resolve a SANAD recipient by exact account email
+ */
+
+export function useLookupWalletRecipient<TData = Awaited<ReturnType<typeof lookupWalletRecipient>>, TError = ErrorType<void>>(
+ params: LookupWalletRecipientParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof lookupWalletRecipient>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getLookupWalletRecipientQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateWalletTransferUrl = () => {
+
+
+
+
+  return `/api/wallet/transfers`
+}
+
+/**
+ * Internal ledger transfer, not a card payment. Both participants receive private transaction history.
+ * @summary Transfer balance between signed-in SANAD wallets
+ */
+export const createWalletTransfer = async (walletTransferInput: WalletTransferInput, options?: Parameters<typeof customFetch>[1]): Promise<WalletTransaction> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WalletTransaction>(getCreateWalletTransferUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(walletTransferInput)
+  }
+);}
+
+
+
+
+
+export const getCreateWalletTransferMutationKey = () => ['createWalletTransfer'] as const;
+
+export const getCreateWalletTransferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletTransfer>>, TError,CreateWalletTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWalletTransfer>>, TError,CreateWalletTransferMutationVariables, TContext> => {
+
+const mutationKey = getCreateWalletTransferMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWalletTransfer>>, CreateWalletTransferMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createWalletTransfer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWalletTransferMutationResult = NonNullable<Awaited<ReturnType<typeof createWalletTransfer>>>
+    export type CreateWalletTransferMutationBody = BodyType<WalletTransferInput>
+    export type CreateWalletTransferMutationError = ErrorType<void>
+    export type CreateWalletTransferMutationVariables = {data: BodyType<WalletTransferInput>}
+
+    /**
+ * @summary Transfer balance between signed-in SANAD wallets
+ */
+export const useCreateWalletTransfer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletTransfer>>, TError,CreateWalletTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWalletTransfer>>,
+        TError,
+        CreateWalletTransferMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateWalletTransferMutationOptions(options));
+    }
+
+export const getCreateWalletMoneyRequestUrl = () => {
+
+
+
+
+  return `/api/wallet/requests`
+}
+
+/**
+ * Creating a request does not move money. The recipient must explicitly pay it from their SANAD wallet.
+ * @summary Request money from a signed-in SANAD account
+ */
+export const createWalletMoneyRequest = async (walletMoneyRequestInput: WalletMoneyRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<WalletMoneyRequest> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WalletMoneyRequest>(getCreateWalletMoneyRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(walletMoneyRequestInput)
+  }
+);}
+
+
+
+
+
+export const getCreateWalletMoneyRequestMutationKey = () => ['createWalletMoneyRequest'] as const;
+
+export const getCreateWalletMoneyRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletMoneyRequest>>, TError,CreateWalletMoneyRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWalletMoneyRequest>>, TError,CreateWalletMoneyRequestMutationVariables, TContext> => {
+
+const mutationKey = getCreateWalletMoneyRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWalletMoneyRequest>>, CreateWalletMoneyRequestMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createWalletMoneyRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWalletMoneyRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createWalletMoneyRequest>>>
+    export type CreateWalletMoneyRequestMutationBody = BodyType<WalletMoneyRequestInput>
+    export type CreateWalletMoneyRequestMutationError = ErrorType<void>
+    export type CreateWalletMoneyRequestMutationVariables = {data: BodyType<WalletMoneyRequestInput>}
+
+    /**
+ * @summary Request money from a signed-in SANAD account
+ */
+export const useCreateWalletMoneyRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWalletMoneyRequest>>, TError,CreateWalletMoneyRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createWalletMoneyRequest>>,
+        TError,
+        CreateWalletMoneyRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateWalletMoneyRequestMutationOptions(options));
+    }
+
+export const getActOnWalletMoneyRequestUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/wallet/requests/${requestId}/action`
+}
+
+/**
+ * @summary Pay, decline, or cancel a pending money request
+ */
+export const actOnWalletMoneyRequest = async (requestId: string,
+    walletMoneyRequestActionInput: WalletMoneyRequestActionInput, options?: Parameters<typeof customFetch>[1]): Promise<WalletMoneyRequest> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WalletMoneyRequest>(getActOnWalletMoneyRequestUrl(requestId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(walletMoneyRequestActionInput)
+  }
+);}
+
+
+
+
+
+export const getActOnWalletMoneyRequestMutationKey = () => ['actOnWalletMoneyRequest'] as const;
+
+export const getActOnWalletMoneyRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof actOnWalletMoneyRequest>>, TError,ActOnWalletMoneyRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof actOnWalletMoneyRequest>>, TError,ActOnWalletMoneyRequestMutationVariables, TContext> => {
+
+const mutationKey = getActOnWalletMoneyRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof actOnWalletMoneyRequest>>, ActOnWalletMoneyRequestMutationVariables> = (props) => {
+          const {requestId,data} = props ?? {};
+
+          return  actOnWalletMoneyRequest(requestId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ActOnWalletMoneyRequestMutationResult = NonNullable<Awaited<ReturnType<typeof actOnWalletMoneyRequest>>>
+    export type ActOnWalletMoneyRequestMutationBody = BodyType<WalletMoneyRequestActionInput>
+    export type ActOnWalletMoneyRequestMutationError = ErrorType<void>
+    export type ActOnWalletMoneyRequestMutationVariables = {requestId: string;data: BodyType<WalletMoneyRequestActionInput>}
+
+    /**
+ * @summary Pay, decline, or cancel a pending money request
+ */
+export const useActOnWalletMoneyRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof actOnWalletMoneyRequest>>, TError,ActOnWalletMoneyRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof actOnWalletMoneyRequest>>,
+        TError,
+        ActOnWalletMoneyRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getActOnWalletMoneyRequestMutationOptions(options));
+    }
+
 export const getListDemoTransfersUrl = () => {
 
 
@@ -4255,7 +5101,8 @@ export const getListDemoTransfersUrl = () => {
 }
 
 /**
- * @summary List simulated person-to-person transfers
+ * Historical records are retained; new private activity is available only through GET /wallet.
+ * @summary List legacy public demo entries for administrators
  */
 export const listDemoTransfers = async ( options?: Parameters<typeof customFetch>[1]): Promise<DemoTransfer[]> => {
 
@@ -4302,7 +5149,7 @@ export type ListDemoTransfersQueryError = ErrorType<void>
 
 
 /**
- * @summary List simulated person-to-person transfers
+ * @summary List legacy public demo entries for administrators
  */
 
 export function useListDemoTransfers<TData = Awaited<ReturnType<typeof listDemoTransfers>>, TError = ErrorType<void>>(
@@ -4323,7 +5170,7 @@ export function useListDemoTransfers<TData = Awaited<ReturnType<typeof listDemoT
 
 
 
-export const getCreateDemoTransferUrl = () => {
+export const getDeprecatedCreateDemoTransferUrl = () => {
 
 
 
@@ -4332,9 +5179,10 @@ export const getCreateDemoTransferUrl = () => {
 }
 
 /**
- * @summary Record a simulated person-to-person transfer
+ * New person-to-person actions require signed-in SANAD wallets.
+ * @summary Deprecated unauthenticated transfer write
  */
-export const createDemoTransfer = async (demoTransferInput: DemoTransferInput, options?: Parameters<typeof customFetch>[1]): Promise<DemoTransfer> => {
+export const deprecatedCreateDemoTransfer = async (demoTransferInput: DemoTransferInput, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -4350,7 +5198,7 @@ export const createDemoTransfer = async (demoTransferInput: DemoTransferInput, o
     }
     return headers;
   };
-return customFetch<DemoTransfer>(getCreateDemoTransferUrl(),
+return customFetch<unknown>(getDeprecatedCreateDemoTransferUrl(),
   {
     ...options,
     method: 'POST',
@@ -4363,13 +5211,13 @@ return customFetch<DemoTransfer>(getCreateDemoTransferUrl(),
 
 
 
-export const getCreateDemoTransferMutationKey = () => ['createDemoTransfer'] as const;
+export const getDeprecatedCreateDemoTransferMutationKey = () => ['deprecatedCreateDemoTransfer'] as const;
 
-export const getCreateDemoTransferMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDemoTransfer>>, TError,CreateDemoTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createDemoTransfer>>, TError,CreateDemoTransferMutationVariables, TContext> => {
+export const getDeprecatedCreateDemoTransferMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreateDemoTransfer>>, TError,DeprecatedCreateDemoTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreateDemoTransfer>>, TError,DeprecatedCreateDemoTransferMutationVariables, TContext> => {
 
-const mutationKey = getCreateDemoTransferMutationKey();
+const mutationKey = getDeprecatedCreateDemoTransferMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -4379,10 +5227,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDemoTransfer>>, CreateDemoTransferMutationVariables> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deprecatedCreateDemoTransfer>>, DeprecatedCreateDemoTransferMutationVariables> = (props) => {
           const {data} = props ?? {};
 
-          return  createDemoTransfer(data,requestOptions)
+          return  deprecatedCreateDemoTransfer(data,requestOptions)
         }
 
 
@@ -4392,22 +5240,22 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateDemoTransferMutationResult = NonNullable<Awaited<ReturnType<typeof createDemoTransfer>>>
-    export type CreateDemoTransferMutationBody = BodyType<DemoTransferInput>
-    export type CreateDemoTransferMutationError = ErrorType<void>
-    export type CreateDemoTransferMutationVariables = {data: BodyType<DemoTransferInput>}
+    export type DeprecatedCreateDemoTransferMutationResult = NonNullable<Awaited<ReturnType<typeof deprecatedCreateDemoTransfer>>>
+    export type DeprecatedCreateDemoTransferMutationBody = BodyType<DemoTransferInput>
+    export type DeprecatedCreateDemoTransferMutationError = ErrorType<void>
+    export type DeprecatedCreateDemoTransferMutationVariables = {data: BodyType<DemoTransferInput>}
 
     /**
- * @summary Record a simulated person-to-person transfer
+ * @summary Deprecated unauthenticated transfer write
  */
-export const useCreateDemoTransfer = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDemoTransfer>>, TError,CreateDemoTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useDeprecatedCreateDemoTransfer = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deprecatedCreateDemoTransfer>>, TError,DeprecatedCreateDemoTransferMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
-        Awaited<ReturnType<typeof createDemoTransfer>>,
+        Awaited<ReturnType<typeof deprecatedCreateDemoTransfer>>,
         TError,
-        CreateDemoTransferMutationVariables,
+        DeprecatedCreateDemoTransferMutationVariables,
         TContext
       > => {
-      return useMutation(getCreateDemoTransferMutationOptions(options));
+      return useMutation(getDeprecatedCreateDemoTransferMutationOptions(options));
     }
 

@@ -23,9 +23,6 @@ import {
   CreateCashOutRequestResponse,
   CreateChildBody,
   CreateChildResponse,
-  CreatePublicChildTransferBody,
-  CreatePublicChildTransferParams,
-  CreatePublicChildTransferResponse,
   CreateSavingsGoalBody,
   CreateSavingsGoalParams,
   CreateSavingsGoalResponse,
@@ -235,51 +232,10 @@ router.post(
     limit: 60,
     windowMs: 15 * 60 * 1000,
   }),
-  async (req, res): Promise<void> => {
-    const params = CreatePublicChildTransferParams.safeParse(req.params);
-    const body = CreatePublicChildTransferBody.safeParse(req.body);
-    if (!params.success) {
-      res.status(404).json({ error: "Child not found" });
-      return;
-    }
-    if (!body.success) {
-      res.status(400).json({ error: body.error.message });
-      return;
-    }
-
-    const outcome = await withMongoTransaction(async (session) => {
-      const child = await children().findOne(
-        { publicId: params.data.publicId },
-        { projection: { id: 1, name: 1 }, session },
-      );
-      if (!child) return null;
-
-      const activity: ChildActivityRecord = {
-        id: await nextId("sanad_child_activity", session),
-        childId: child.id,
-        title: "Direct QR transfer received",
-        amountFils: body.data.amountFils,
-        kind: "transfer",
-        createdAt: new Date(),
-      };
-      await activities().insertOne(activity, { session });
-      return {
-        firstName: childFirstName(child.name),
-        amountFils: activity.amountFils,
-        createdAt: activity.createdAt.toISOString(),
-      };
+  async (_req, res): Promise<void> => {
+    res.status(410).json({
+      error: "Direct QR credits are disabled. Start a SANAD checkout instead.",
     });
-
-    if (!outcome) {
-      res.status(404).json({ error: "Child not found" });
-      return;
-    }
-    res.status(201).json(
-      CreatePublicChildTransferResponse.parse({
-        ...outcome,
-        demoOnly: true,
-      }),
-    );
   },
 );
 
