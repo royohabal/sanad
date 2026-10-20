@@ -1,0 +1,268 @@
+# SANAD — Complete Payments, Digital Wallets & Money Transfers Implementation
+
+I want you to implement a complete payment and money-transfer system for my SANAD (سند) fintech university project.
+
+**IMPORTANT: Inspect the existing codebase, database models, authentication, wallet functionality, APIs, and current UI before making changes.** Reuse and extend existing functionality wherever possible. Do not rebuild the project from scratch or remove working features.
+
+My existing technology and requirements:
+- Existing MongoDB database and stored records
+- Existing Clerk authentication
+- Existing worker QR tipping functionality
+- Existing parent/family and child digital-wallet functionality
+- Existing individual user transfers and/or demo-transfer functionality, if implemented
+- Existing company, worker, settlement, and transaction features
+- KWD (Kuwaiti dinar) as the displayed currency
+- Existing SANAD design and branding
+
+The goal is to make all four money flows work consistently, with secure server-side validation and a shared payment experience.
+
+## 1. Payment provider and Stripe setup
+
+Inspect the repository to determine the best way to integrate Stripe Checkout into the existing backend.
+
+- Use Stripe's official server-side SDK and hosted Checkout page if a valid Stripe account and supported currency are available.
+- Use environment variables/secrets for credentials. Never expose secret keys in frontend code or commit them to GitHub.
+- Check the exact environment variable names needed by the existing application and document them.
+- Never hardcode API keys, fake a successful Stripe response, or claim that a payment was verified when it was not.
+- Use test mode only for this university project. Do not activate live payments, real payouts, or live financial processing.
+- Verify Checkout sessions and payment status server-side before crediting wallets or recording a tip as paid.
+- Use secure success and cancellation routes. Visiting a success URL alone must never credit money.
+- Handle errors, cancelled payments, repeated callbacks, and expired sessions safely.
+
+I am based in Kuwait and may not be able to open a Stripe account registered in Kuwait. Do not ask me to select a false country or use unsupported account details.
+
+If I cannot legitimately configure Stripe, or Stripe does not support KWD for the configured account:
+- Implement a functional, clearly labelled **SIMULATED PAYMENT — UNIVERSITY DEMO** checkout page.
+- Keep amounts displayed in KWD.
+- Let the user complete a simulated payment and see a clear demo confirmation.
+- Never describe a simulated payment as a real card charge or real transfer.
+- Keep the payment integration modular so a legitimate supported provider can be configured later.
+- Do not silently change KWD to USD or another currency. If real Stripe Checkout cannot process KWD, explain that clearly and use the simulated KWD checkout instead.
+
+Do not stop the entire implementation just because Stripe credentials are unavailable. Build and test the simulated payment flow where necessary.
+
+## 2. Flow A — Tip a worker
+
+Integrate payment into the existing public worker QR tipping page.
+
+Expected flow:
+1. Customer scans a worker's QR code.
+2. Customer sees the correct worker's profile and tipping page.
+3. Customer chooses a preset tip amount or enters a permitted custom amount in KWD.
+4. Customer reviews the worker and amount.
+5. Customer taps "Pay Tip".
+6. Customer is redirected to Stripe Checkout in test mode if properly configured, or the simulated KWD checkout if not.
+7. Customer sees a success, failure, or cancellation screen.
+8. Only after verified payment success, record the tip and update the worker's tip history and applicable wallet/settlement records.
+
+Requirements:
+- Keep tipping as simple and quick as possible; customers should not need a SANAD account just to tip.
+- Preserve existing worker QR IDs, tip records, ratings, and messages.
+- Do not create duplicate tips if the customer refreshes the page or repeats a callback.
+- Apply server-side validation and rate limiting to public tipping endpoints.
+- Do not mark unpaid or cancelled tips as paid.
+
+## 3. Flow B — Parent adds money to a child's digital wallet
+
+Add a prominent "Add Money" button to each child's wallet in the existing parent/family dashboard.
+
+Expected flow:
+1. Parent signs in.
+2. Parent selects the child whose wallet they want to fund.
+3. Parent taps "Add Money".
+4. Parent chooses or enters a top-up amount in KWD.
+5. Parent reviews the amount and selected child.
+6. Parent taps "Continue to Payment".
+7. The payment checkout opens.
+8. After verified Stripe test payment or successful simulated demo payment, the child's wallet is credited exactly once.
+9. Parent sees a confirmation with the amount added and the child's updated balance.
+
+Requirements:
+- Only an authorized parent/guardian may fund a child linked to their account.
+- Validate the child relationship and amount on the server.
+- Cancelled or failed payments must not credit the wallet.
+- Record the top-up in the child's wallet activity and the parent's transaction history.
+- Prevent duplicate credits after refreshes, repeated requests, or repeated payment callbacks.
+- Keep the child's balance and history consistent with the database.
+
+## 4. Flow C — Send money to another individual
+
+Implement or improve the existing individual-to-individual transfer feature.
+
+Expected flow:
+1. Authenticated user opens "Send Money".
+2. User selects a recipient using the existing supported recipient lookup method.
+3. User enters the amount in KWD and an optional note.
+4. User reviews the recipient and amount.
+5. User taps "Confirm Send".
+6. If the sender has enough funds in their existing SANAD demo wallet, the transfer is completed internally.
+7. Both sender and recipient see the updated balances and transaction history.
+8. Both users can view a transaction receipt or detail page.
+
+Requirements:
+- Transfers from an existing SANAD balance should be internal wallet transfers. Do not redirect the user to Stripe to pay again for funds already in their wallet.
+- Check sender identity, recipient identity, balance, amount, and permissions on the server.
+- Prevent sending to invalid recipients, negative amounts, unauthorized wallets, or oneself if self-transfers are not supported.
+- Prevent negative balances, double spending, and duplicate transfers.
+- Use atomic database operations or transactions where supported.
+- Record a unique transfer ID and corresponding debit and credit entries.
+- If funds are insufficient, do not move money. Display a clear message and offer "Add Money" only if an appropriate top-up flow exists.
+- Do not change balances merely because the browser claims a transfer succeeded.
+
+## 5. Flow D — Request money from another individual
+
+Implement or improve the existing "Request Money" functionality.
+
+Expected flow:
+1. Authenticated user opens "Request Money".
+2. User selects the person they want to request money from.
+3. User enters the amount in KWD and an optional note.
+4. User reviews and sends the request.
+5. The recipient receives an in-app request or notification and can view its details.
+6. Recipient can accept and pay, decline, or take no action while the request is pending.
+7. If accepted and paid successfully, complete the internal transfer exactly once.
+8. Both users can see the resulting transaction and updated balances.
+
+Requirements:
+- Creating or viewing a request must never move money.
+- Store a unique request ID, requester, requested-from user, amount, optional note, creation time, and status.
+- Use clear statuses such as Pending, Paid, Declined, and Cancelled.
+- The recipient must explicitly approve the payment before funds are transferred.
+- If the payer has insufficient funds, leave the request unpaid and explain the available options.
+- Prevent a request from being paid twice, including through repeated button clicks, simultaneous requests, or page refreshes.
+- Only authorized participants can view, accept, decline, or cancel a request.
+- Validate all status changes on the server.
+- Record completed transfers in both users' histories.
+
+## 6. Shared wallet and transaction history
+
+Create or improve a consistent wallet and transaction experience across SANAD.
+
+Where appropriate, users should be able to see:
+- Current demo-wallet balance
+- Money received
+- Money sent
+- Money requested
+- Requests awaiting action
+- Wallet top-ups
+- Worker tips, where applicable
+- Transaction amount in KWD
+- Date and time
+- Transaction status
+- Recipient or sender
+- Optional note
+- Transaction detail or receipt
+
+Use clear labels to distinguish:
+- Completed simulated demo transactions
+- Pending money requests
+- Successful Stripe test payments
+- Failed or cancelled payments
+
+Do not mix pending requests with completed transactions. Keep the activity history and balances consistent with MongoDB.
+
+## 7. Shared checkout design
+
+Create or reuse a consistent checkout interface for:
+- Worker tips
+- Parent top-ups to a child's wallet
+
+The checkout should display:
+- SANAD logo/name
+- Purpose of the payment
+- Worker name or child's name, where relevant
+- Amount in KWD
+- Payment method/status
+- Clear "Confirm Payment" or "Pay" action
+- Cancel/back action
+- Success, failure, and cancellation states
+
+For simulated checkout, display a visible "SIMULATED PAYMENT — UNIVERSITY DEMO" label before the user confirms.
+
+Do not route ordinary transfers from existing SANAD balances through this checkout. Use a transfer review/confirmation screen for internal transfers.
+
+Use the current brand palette:
+- Deep Burgundy: #581C2B
+- Warm Coral: #EF805F
+- Warm Cream: #F5E8D8
+- Dark Wine: #3B1720
+
+Keep the design modern, friendly, accessible, mobile-responsive, and consistent with the existing SANAD interface. Reuse components instead of duplicating similar pages.
+
+## 8. Security and financial integrity
+
+This is a university demonstration project, not a licensed financial service. Keep all financial functionality simulated unless a legitimate test provider is properly configured.
+
+Security requirements:
+- Preserve existing Clerk authentication and MongoDB.
+- Enforce authorization on the server for every private wallet, family, transaction, and request endpoint.
+- Never trust user IDs, child IDs, balances, payment statuses, amounts, or transaction results supplied by the browser.
+- Validate all amounts and use consistent KWD formatting and precision.
+- Use server-generated unique transaction IDs and idempotency controls.
+- Prevent duplicate credits/debits, negative balances, replayed requests, and double spending.
+- Use atomic database updates or transactions where supported.
+- Keep an auditable record of every completed demo transaction.
+- Keep payment secrets in Replit Secrets or the deployment platform's environment variables.
+- Never store raw card numbers or CVVs.
+- Do not create real bank withdrawals, live payouts, or unverified payment confirmations.
+- Preserve existing data and database structures wherever possible. If a migration is necessary, explain it first and make it safe and backward-compatible.
+
+## 9. Tests
+
+Run and report tests for all relevant cases.
+
+Worker tips:
+- Valid tip
+- Invalid amount
+- Cancelled payment
+- Failed payment
+- Duplicate callback or submission
+- Public endpoint rate limiting
+
+Child wallet:
+- Authorized parent top-up
+- Unauthorized parent attempt
+- Wrong child ID
+- Successful simulated/test top-up
+- Cancelled or failed payment
+- Duplicate top-up attempt
+
+Individual transfers:
+- Successful transfer
+- Insufficient balance
+- Invalid amount
+- Unauthorized sender
+- Invalid recipient
+- Duplicate submission
+- Concurrent or repeated transfer attempt
+
+Money requests:
+- Create request
+- Decline request
+- Cancel pending request
+- Accept and pay request
+- Insufficient funds
+- Unauthorized access
+- Repeated acceptance
+- Attempt to pay an already completed request
+
+Also verify that existing worker, company, settlement, family, QR, and authentication features still work.
+
+Run the appropriate type checks, tests, lint checks, and production builds available in the repository. Fix any issues caused by your changes.
+
+## 10. Deployment and final report
+
+Do not expose credentials or modify production records unnecessarily.
+
+At the end, give me a simple report with:
+1. What you implemented.
+2. Which pages, components, API routes, and database models changed.
+3. Whether Stripe test Checkout actually works with the configured credentials and KWD.
+4. If Stripe is unavailable, how the simulated checkout works.
+5. How to test all four flows manually.
+6. Which environment variables I need to configure, using the exact names from the code.
+7. Whether any database migration is required.
+8. Whether the frontend and API both need to be redeployed, and the exact steps to do so.
+9. Any remaining security issues or incomplete features.
+
+Do not claim a feature or test works unless you actually verified it. Keep existing working features intact and explain any limitations clearly.
