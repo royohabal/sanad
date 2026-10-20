@@ -52,6 +52,52 @@ const workerCompanyRequests = () =>
     "sanad_worker_company_requests",
   );
 
+router.put(
+  "/workers/me/wallet/demo-payout",
+  requireSignedIn,
+  (_req, res): void => {
+    res.status(410).json({
+      error: "Independent worker cash-out is disabled. Historical payout data is retained.",
+    });
+  },
+);
+router.post(
+  "/workers/me/wallet/legacy-tip-route",
+  requireSignedIn,
+  (_req, res): void => {
+    res.status(410).json({
+      error: "Company-managed workers cannot route tips to an independent wallet.",
+    });
+  },
+);
+router.post(
+  "/workers/me/withdrawals",
+  requireSignedIn,
+  (_req, res): void => {
+    res.status(410).json({
+      error: "Independent worker cash-out is disabled.",
+    });
+  },
+);
+router.post(
+  "/workers/me/withdrawals/:id/cancel",
+  requireSignedIn,
+  (_req, res): void => {
+    res.status(410).json({
+      error: "New worker cash-out actions are disabled. Historical requests are retained.",
+    });
+  },
+);
+router.patch(
+  "/admin/worker-withdrawals/:id",
+  requireAdmin,
+  (_req, res): void => {
+    res.status(410).json({
+      error: "Historical worker withdrawal statuses are read-only.",
+    });
+  },
+);
+
 function isDuplicateKeyError(error: unknown): boolean {
   return (
     typeof error === "object" &&

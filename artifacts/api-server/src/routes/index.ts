@@ -11,6 +11,7 @@ import transfersRouter from "./transfers";
 import workerFinanceRouter from "./worker-finance";
 import paymentsRouter from "./payments";
 import walletRouter from "./wallet";
+import workerInvitationsRouter from "./worker-invitations";
 
 const router: IRouter = Router();
 
@@ -23,5 +24,6 @@ router.use(familyRouter);
 router.use(transfersRouter);
 router.use(paymentsRouter);
 router.use(walletRouter);
+router.use(workerInvitationsRouter);
 
 export default router;

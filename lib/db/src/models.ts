@@ -40,7 +40,13 @@ export interface WorkerRecord {
   id: number;
   publicId: string;
   ownerUserId?: string;
-  companyId?: number;
+  emailAddress?: string;
+  emailNormalized?: string;
+  department?: string | null;
+  workerAccountStatus?: "invited" | "active" | "deactivated";
+  invitedCompanyId?: number;
+  deactivatedAt?: Date;
+  companyId?: number | null;
   requestedCompanyId?: number;
   companyStatus?: "none" | "pending" | "approved" | "rejected";
   name: string;
@@ -57,6 +63,29 @@ export interface WorkerRecord {
     updatedAt: Date;
   };
   companyMemberships?: WorkerCompanyMembershipRecord[];
+}
+
+export type WorkerInvitationStatus =
+  | "pending"
+  | "accepted"
+  | "expired"
+  | "revoked";
+
+export interface WorkerInvitationRecord {
+  id: string;
+  companyId: number;
+  workerId: number;
+  emailAddress: string;
+  emailNormalized: string;
+  clerkInvitationId: string;
+  redirectPath: string;
+  status: WorkerInvitationStatus;
+  createdByUserId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  expiresAt: Date;
+  acceptedAt?: Date;
+  revokedAt?: Date;
 }
 
 export interface WorkerCompanyMembershipRecord {

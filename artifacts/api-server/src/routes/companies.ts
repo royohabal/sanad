@@ -49,6 +49,34 @@ const workerRequests = () =>
     "sanad_worker_company_requests",
   );
 
+router.post(
+  "/workers/me/company-requests",
+  requireSignedIn,
+  (_req, res): void => {
+    res.status(410).json({
+      error: "Workers cannot self-assign. An approved company must invite them.",
+    });
+  },
+);
+router.patch(
+  "/companies/me/worker-requests/:id",
+  requireSignedIn,
+  (_req, res): void => {
+    res.status(410).json({
+      error: "New worker associations use company-issued invitations.",
+    });
+  },
+);
+router.post(
+  "/workers/me/company-exit",
+  requireSignedIn,
+  (_req, res): void => {
+    res.status(410).json({
+      error: "Company worker access is managed by the approved company.",
+    });
+  },
+);
+
 function isDuplicateKeyError(error: unknown): boolean {
   return (
     typeof error === "object" &&

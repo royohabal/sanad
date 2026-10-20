@@ -50,6 +50,7 @@ export const GetMyWorkerProfileResponse = zod.object({
   "createdAt": zod.coerce.date()
 }),zod.null()]),
   "companyStatus": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "accountStatus": zod.enum(['none', 'invited', 'active', 'deactivated']),
   "companyRequest": zod.union([zod.object({
   "id": zod.number().int(),
   "companyId": zod.number().int(),
@@ -92,6 +93,7 @@ export const CreateMyWorkerProfileResponse = zod.object({
   "createdAt": zod.coerce.date()
 }),zod.null()]),
   "companyStatus": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "accountStatus": zod.enum(['none', 'invited', 'active', 'deactivated']),
   "companyRequest": zod.union([zod.object({
   "id": zod.number().int(),
   "companyId": zod.number().int(),
@@ -319,6 +321,7 @@ export const LeaveWorkerCompanyResponse = zod.object({
   "createdAt": zod.coerce.date()
 }),zod.null()]),
   "companyStatus": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "accountStatus": zod.enum(['none', 'invited', 'active', 'deactivated']),
   "companyRequest": zod.union([zod.object({
   "id": zod.number().int(),
   "companyId": zod.number().int(),
@@ -643,6 +646,231 @@ export const ReviewWorkerCompanyRequestResponse = zod.object({
 }),
   "status": zod.enum(['pending', 'approved', 'rejected']),
   "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List only workers and invitations owned by the signed-in approved company
+ */
+export const ListCompanyWorkersResponseItem = zod.object({
+  "workerId": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "emailAddress": zod.string().email().nullable(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "department": zod.string().nullable(),
+  "status": zod.enum(['invited', 'active', 'deactivated']),
+  "invitationStatus": zod.union([zod.literal('pending'),zod.literal('accepted'),zod.literal('expired'),zod.literal('revoked'),zod.literal(null)]).nullable(),
+  "invitationExpiresAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+export const ListCompanyWorkersResponse = zod.array(ListCompanyWorkersResponseItem)
+
+
+/**
+ * @summary Create a company-owned worker profile and email a Clerk invitation
+ */
+export const createCompanyWorkerInvitationBodyOneRedirectPathMax = 100;
+
+
+export const createCompanyWorkerInvitationBodyOneRedirectPathRegExp = new RegExp('^/(?:[A-Za-z0-9_-]+/)?worker/invitation$');
+export const createCompanyWorkerInvitationBodyTwoNameMin = 2;
+export const createCompanyWorkerInvitationBodyTwoNameMax = 100;
+
+export const createCompanyWorkerInvitationBodyTwoEmailAddressMax = 254;
+
+export const createCompanyWorkerInvitationBodyTwoJobTitleMax = 80;
+
+export const createCompanyWorkerInvitationBodyTwoDepartmentMax = 80;
+
+
+
+export const CreateCompanyWorkerInvitationBody = zod.object({
+  "redirectPath": zod.string().max(createCompanyWorkerInvitationBodyOneRedirectPathMax).regex(createCompanyWorkerInvitationBodyOneRedirectPathRegExp).optional()
+}).and(zod.object({
+  "name": zod.string().min(createCompanyWorkerInvitationBodyTwoNameMin).max(createCompanyWorkerInvitationBodyTwoNameMax),
+  "emailAddress": zod.string().email().max(createCompanyWorkerInvitationBodyTwoEmailAddressMax),
+  "jobTitle": zod.string().max(createCompanyWorkerInvitationBodyTwoJobTitleMax).nullish(),
+  "department": zod.string().max(createCompanyWorkerInvitationBodyTwoDepartmentMax).nullish()
+}))
+
+export const CreateCompanyWorkerInvitationResponse = zod.object({
+  "workerId": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "emailAddress": zod.string().email().nullable(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "department": zod.string().nullable(),
+  "status": zod.enum(['invited', 'active', 'deactivated']),
+  "invitationStatus": zod.union([zod.literal('pending'),zod.literal('accepted'),zod.literal('expired'),zod.literal('revoked'),zod.literal(null)]).nullable(),
+  "invitationExpiresAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a worker profile owned by the signed-in company
+ */
+
+
+
+export const UpdateCompanyWorkerParams = zod.object({
+  "workerId": zod.coerce.number().int().min(1)
+})
+
+export const updateCompanyWorkerBodyNameMin = 2;
+export const updateCompanyWorkerBodyNameMax = 100;
+
+export const updateCompanyWorkerBodyJobTitleMax = 80;
+
+export const updateCompanyWorkerBodyDepartmentMax = 80;
+
+
+
+export const UpdateCompanyWorkerBody = zod.object({
+  "name": zod.string().min(updateCompanyWorkerBodyNameMin).max(updateCompanyWorkerBodyNameMax).optional(),
+  "jobTitle": zod.string().max(updateCompanyWorkerBodyJobTitleMax).nullish(),
+  "department": zod.string().max(updateCompanyWorkerBodyDepartmentMax).nullish()
+})
+
+export const UpdateCompanyWorkerResponse = zod.object({
+  "workerId": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "emailAddress": zod.string().email().nullable(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "department": zod.string().nullable(),
+  "status": zod.enum(['invited', 'active', 'deactivated']),
+  "invitationStatus": zod.union([zod.literal('pending'),zod.literal('accepted'),zod.literal('expired'),zod.literal('revoked'),zod.literal(null)]).nullable(),
+  "invitationExpiresAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Send a fresh Clerk invitation to a pending company worker
+ */
+
+
+
+export const ResendCompanyWorkerInvitationParams = zod.object({
+  "workerId": zod.coerce.number().int().min(1)
+})
+
+export const resendCompanyWorkerInvitationBodyRedirectPathMax = 100;
+
+
+export const resendCompanyWorkerInvitationBodyRedirectPathRegExp = new RegExp('^/(?:[A-Za-z0-9_-]+/)?worker/invitation$');
+
+
+export const ResendCompanyWorkerInvitationBody = zod.object({
+  "redirectPath": zod.string().max(resendCompanyWorkerInvitationBodyRedirectPathMax).regex(resendCompanyWorkerInvitationBodyRedirectPathRegExp).optional()
+})
+
+export const ResendCompanyWorkerInvitationResponse = zod.object({
+  "workerId": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "emailAddress": zod.string().email().nullable(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "department": zod.string().nullable(),
+  "status": zod.enum(['invited', 'active', 'deactivated']),
+  "invitationStatus": zod.union([zod.literal('pending'),zod.literal('accepted'),zod.literal('expired'),zod.literal('revoked'),zod.literal(null)]).nullable(),
+  "invitationExpiresAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Revoke a pending worker invitation without deleting the worker profile
+ */
+
+
+
+export const RevokeCompanyWorkerInvitationParams = zod.object({
+  "workerId": zod.coerce.number().int().min(1)
+})
+
+export const RevokeCompanyWorkerInvitationResponse = zod.object({
+  "workerId": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "emailAddress": zod.string().email().nullable(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "department": zod.string().nullable(),
+  "status": zod.enum(['invited', 'active', 'deactivated']),
+  "invitationStatus": zod.union([zod.literal('pending'),zod.literal('accepted'),zod.literal('expired'),zod.literal('revoked'),zod.literal(null)]).nullable(),
+  "invitationExpiresAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Deactivate a worker and disable new QR tips while preserving their history
+ */
+
+
+
+export const DeactivateCompanyWorkerParams = zod.object({
+  "workerId": zod.coerce.number().int().min(1)
+})
+
+export const DeactivateCompanyWorkerResponse = zod.object({
+  "workerId": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "emailAddress": zod.string().email().nullable(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "department": zod.string().nullable(),
+  "status": zod.enum(['invited', 'active', 'deactivated']),
+  "invitationStatus": zod.union([zod.literal('pending'),zod.literal('accepted'),zod.literal('expired'),zod.literal('revoked'),zod.literal(null)]).nullable(),
+  "invitationExpiresAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Find the signed-in user's pending company worker invitation
+ */
+export const GetMyWorkerInvitationResponse = zod.object({
+  "invitation": zod.union([zod.object({
+  "workerName": zod.string(),
+  "jobTitle": zod.string(),
+  "companyName": zod.string(),
+  "invitationExpiresAt": zod.coerce.date()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Accept an invitation using the verified Clerk email that received it
+ */
+export const AcceptMyWorkerInvitationResponse = zod.object({
+  "worker": zod.union([zod.object({
+  "id": zod.number().int(),
+  "publicId": zod.string(),
+  "name": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "workplace": zod.string(),
+  "jobTitle": zod.string(),
+  "company": zod.string(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "companyStatus": zod.enum(['none', 'pending', 'approved', 'rejected']),
+  "accountStatus": zod.enum(['none', 'invited', 'active', 'deactivated']),
+  "companyRequest": zod.union([zod.object({
+  "id": zod.number().int(),
+  "companyId": zod.number().int(),
+  "companyName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "createdAt": zod.coerce.date()
+}),zod.null()])
 })
 
 

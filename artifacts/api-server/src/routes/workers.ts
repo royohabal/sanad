@@ -291,6 +291,11 @@ async function workerDashboardData(worker: WorkerRecord) {
 }
 
 async function workerProfileState(worker: WorkerRecord | null) {
+  const accountStatus = worker?.workerAccountStatus ??
+    (worker?.companyId != null && worker.companyStatus === "approved"
+      ? "active"
+      : "none");
+  const visibleWorker = accountStatus === "none" ? null : worker;
   const request = worker
     ? await workerCompanyRequests()
         .find({ workerId: worker.id })
@@ -302,8 +307,12 @@ async function workerProfileState(worker: WorkerRecord | null) {
     ? await companies().findOne({ id: request.companyId })
     : null;
   return {
-    worker: worker ? workerDto(worker) : null,
-    companyStatus: worker?.companyStatus ?? "none",
+    worker: visibleWorker ? workerDto(visibleWorker) : null,
+    companyStatus:
+      accountStatus === "active"
+        ? worker?.companyStatus ?? "approved"
+        : worker?.companyStatus ?? "none",
+    accountStatus,
     companyRequest:
       request && company
         ? {
@@ -318,8 +327,19 @@ async function workerProfileState(worker: WorkerRecord | null) {
 }
 
 router.get("/workers", async (_req, res): Promise<void> => {
+  const approvedCompanies = await companies()
+    .find({ status: "approved" }, { projection: { id: 1 } })
+    .toArray();
   const rows = await workers()
-    .find({ archivedAt: { $exists: false } })
+    .find({
+      companyId: { $in: approvedCompanies.map((company) => company.id) },
+      companyStatus: "approved",
+      archivedAt: { $exists: false },
+      $or: [
+        { workerAccountStatus: "active" },
+        { workerAccountStatus: { $exists: false } },
+      ],
+    })
     .sort({ createdAt: -1 })
     .toArray();
   res.json(ListWorkersResponse.parse(rows.map(workerDto)));
@@ -344,85 +364,23 @@ router.get(
 router.post(
   "/workers/me/profile",
   requireSignedIn,
-  async (req, res): Promise<void> => {
-    const userId = signedInUserId(req);
-    const parsed = CreateMyWorkerProfileBody.safeParse(req.body);
-    if (!userId) {
-      res.status(401).json({ error: "Sign in to continue." });
-      return;
-    }
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.message });
-      return;
-    }
-    const name = parsed.data.name.trim();
-    const workplace = parsed.data.workplace.trim();
-    const jobTitle = parsed.data.jobTitle.trim();
-    if (name.length < 2 || workplace.length < 2 || jobTitle.length < 2) {
-      res.status(400).json({ error: "Name, job title, and workplace are required." });
-      return;
-    }
-    if (await workers().findOne({ ownerUserId: userId })) {
-      res.status(409).json({ error: "This account already has a worker profile." });
-      return;
-    }
-
-    const worker: WorkerRecord = {
-      id: await nextId("sanad_workers"),
-      publicId: randomUUID(),
-      ownerUserId: userId,
-      companyStatus: "none",
-      name,
-      avatarUrl: null,
-      workplace,
-      jobTitle,
-      company: "Independent",
-      createdAt: new Date(),
-    };
-    try {
-      await workers().insertOne(worker);
-    } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        error.code === 11000
-      ) {
-        res.status(409).json({ error: "This account already has a worker profile." });
-        return;
-      }
-      throw error;
-    }
-    res
-      .status(201)
-      .json(
-        CreateMyWorkerProfileResponse.parse(await workerProfileState(worker)),
-      );
+  async (_req, res): Promise<void> => {
+    res.status(410).json({
+      error: "Worker profiles are created by approved companies through email invitations.",
+    });
   },
 );
 
-router.post("/workers", requireAdmin, async (req, res): Promise<void> => {
-  const parsed = CreateWorkerBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-
-  const worker: WorkerRecord = {
-    ...parsed.data,
-    avatarUrl: parsed.data.avatarUrl ?? null,
-    id: await nextId("sanad_workers"),
-    publicId: randomUUID(),
-    createdAt: new Date(),
-  };
-  await workers().insertOne(worker);
-  res.status(201).json(CreateWorkerResponse.parse(workerDto(worker)));
+router.post("/workers", requireAdmin, (_req, res): void => {
+  res.status(410).json({
+    error: "Only approved companies can create worker profiles and send invitations.",
+  });
 });
 
 router.get("/workers/:publicId", async (req, res): Promise<void> => {
   const params = GetWorkerByPublicIdParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+  if (!params.data) {
+    res.status(400).json({ error: params.error?.message || "Invalid worker identifier." });
     return;
   }
   if (!isPublicId(params.data.publicId)) {
@@ -433,8 +391,18 @@ router.get("/workers/:publicId", async (req, res): Promise<void> => {
   const worker = await workers().findOne({
     publicId: params.data.publicId,
     archivedAt: { $exists: false },
+    companyStatus: "approved",
+    companyId: { $exists: true },
+    $or: [
+      { workerAccountStatus: "active" },
+      { workerAccountStatus: { $exists: false } },
+    ],
   });
-  if (!worker) {
+  const approvedCompany =
+    worker?.companyId != null
+      ? await companies().findOne({ id: worker.companyId, status: "approved" })
+      : null;
+  if (!worker || !approvedCompany) {
     res.status(404).json({ error: "Worker not found" });
     return;
   }
@@ -446,34 +414,10 @@ router.get("/workers/:publicId", async (req, res): Promise<void> => {
 router.delete(
   "/workers/:publicId",
   requireAdmin,
-  async (req, res): Promise<void> => {
-  const params = DeleteWorkerParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-  if (!isPublicId(params.data.publicId)) {
-    res.status(404).json({ error: "Worker not found" });
-    return;
-  }
-
-  const archived = await workers().updateOne(
-    { publicId: params.data.publicId, archivedAt: { $exists: false } },
-    { $set: { archivedAt: new Date() } },
-  );
-  if (archived.matchedCount === 0) {
-    const exists = await workers().findOne(
-      { publicId: params.data.publicId },
-      { projection: { id: 1 } },
-    );
-    if (exists) {
-      res.sendStatus(204);
-      return;
-    }
-    res.status(404).json({ error: "Worker not found" });
-    return;
-  }
-  res.sendStatus(204);
+  async (_req, res): Promise<void> => {
+    res.status(410).json({
+      error: "Worker history is retained; use company deactivation instead.",
+    });
   },
 );
 
@@ -489,6 +433,14 @@ router.get(
     const worker = await workers().findOne({ ownerUserId: userId });
     if (!worker) {
       res.status(404).json({ error: "Worker profile not found." });
+      return;
+    }
+    const accountStatus = worker.workerAccountStatus ??
+      (worker.companyId != null && worker.companyStatus === "approved"
+        ? "active"
+        : "none");
+    if (accountStatus === "none" || accountStatus === "invited") {
+      res.status(403).json({ error: "An active company invitation is required." });
       return;
     }
     res.json(

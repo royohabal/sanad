@@ -317,12 +317,18 @@ async function creditPayment(
     );
     if (!worker) throw new Error("Payment worker no longer exists.");
     const payoutCompany =
-      worker.companyId != null && worker.companyStatus === "approved"
+      worker.companyId != null &&
+      worker.companyStatus === "approved" &&
+      worker.workerAccountStatus !== "deactivated" &&
+      worker.workerAccountStatus !== "invited"
         ? await companies().findOne(
             { id: worker.companyId, status: "approved" },
             { session },
           )
         : null;
+    if (!payoutCompany) {
+      throw new Error("Worker is not active in an approved company.");
+    }
     const tip: TipRecord = {
       id: await nextId("sanad_tips", session),
       reference,
@@ -334,29 +340,11 @@ async function creditPayment(
       idempotencyKey: payment.paymentId,
       status,
       createdAt: now,
-      payoutMethod: payoutCompany ? "company" : "independent",
-      ...(payoutCompany
-        ? {
-            payoutCompanyId: payoutCompany.id,
-            payoutCompanyName: payoutCompany.name,
-          }
-        : {}),
+      payoutMethod: "company",
+      payoutCompanyId: payoutCompany.id,
+      payoutCompanyName: payoutCompany.name,
     };
     await tips().insertOne(tip, { session });
-    if (!payoutCompany) {
-      await appendWorkerLedgerEvent({
-        workerId: worker.id,
-        kind: "tip_credit",
-        amountFils: payment.amountFils,
-        sourceKey: `worker:${worker.id}:tip:${tip.id}:credit`,
-        reference,
-        description:
-          status === "paid"
-            ? "Stripe test tip credited to worker wallet"
-            : "Simulated direct tip credit (university demo)",
-        session,
-      });
-    }
     return reference;
   }
 
@@ -488,9 +476,21 @@ router.post(
       }
       const worker = await workers().findOne({
         publicId: body.publicId,
+        companyStatus: "approved",
+        companyId: { $exists: true },
+        $or: [
+          { workerAccountStatus: "active" },
+          { workerAccountStatus: { $exists: false } },
+        ],
         archivedAt: { $exists: false },
       });
-      if (!worker) {
+      const approvedCompany = worker?.companyId != null
+        ? await companies().findOne({
+            id: worker.companyId,
+            status: "approved",
+          })
+        : null;
+      if (!worker || !approvedCompany) {
         res.status(404).json({ error: "Worker not found." });
         return;
       }

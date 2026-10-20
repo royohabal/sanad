@@ -64,7 +64,40 @@ async function ensureIndexes(db: Db) {
       { ownerUserId: 1 },
       { unique: true, sparse: true },
     ),
+    db.collection("sanad_workers").createIndex(
+      { emailNormalized: 1 },
+      { unique: true, sparse: true },
+    ),
     db.collection("sanad_workers").createIndex({ companyId: 1 }),
+    db.collection("sanad_workers").createIndex({
+      invitedCompanyId: 1,
+      workerAccountStatus: 1,
+    }),
+    db.collection("sanad_worker_invitations").createIndex(
+      { id: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_worker_invitations").createIndex(
+      { clerkInvitationId: 1 },
+      { unique: true },
+    ),
+    db.collection("sanad_worker_invitations").createIndex(
+      { emailNormalized: 1 },
+      { unique: true, partialFilterExpression: { status: "pending" } },
+    ),
+    db.collection("sanad_worker_invitations").createIndex(
+      { workerId: 1 },
+      { unique: true, partialFilterExpression: { status: "pending" } },
+    ),
+    db.collection("sanad_worker_invitations").createIndex({
+      companyId: 1,
+      status: 1,
+      createdAt: -1,
+    }),
+    db.collection("sanad_worker_invitations").createIndex({
+      workerId: 1,
+      createdAt: -1,
+    }),
     db.collection("sanad_tips").createIndex({ id: 1 }, { unique: true }),
     db.collection("sanad_tips").createIndex({ reference: 1 }, { unique: true }),
     db.collection("sanad_tips").createIndex(

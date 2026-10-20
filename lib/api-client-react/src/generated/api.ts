@@ -37,6 +37,7 @@ import type {
   ChildInput,
   ChildUpdate,
   CompanyDashboard,
+  CompanyManagedWorker,
   CompanyOption,
   CompanyProfile,
   CompanyProfileInput,
@@ -45,8 +46,10 @@ import type {
   CompanySettlementStatusInput,
   CompanyStatusUpdate,
   CompanySummary,
+  CompanyWorkerCreateInput,
   CompanyWorkerRequest,
   CompanyWorkerRequestUpdate,
+  CompanyWorkerUpdateInput,
   DemoPayoutProfileInput,
   DemoPayoutProfileResponse,
   DemoTipInput,
@@ -59,6 +62,7 @@ import type {
   LegacyTipRouteResponse,
   ListTipsParams,
   LookupWalletRecipientParams,
+  MyWorkerInvitationResponse,
   PaymentCheckout,
   PaymentCheckoutInput,
   PublicChildRecipient,
@@ -82,6 +86,7 @@ import type {
   WorkerCompanyRequestInput,
   WorkerDashboard,
   WorkerInput,
+  WorkerInvitationRedirectInput,
   WorkerProfileInput,
   WorkerProfileState,
   WorkerWalletTransactionsPage,
@@ -1925,6 +1930,648 @@ export const useReviewWorkerCompanyRequest = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getReviewWorkerCompanyRequestMutationOptions(options));
+    }
+
+export const getListCompanyWorkersUrl = () => {
+
+
+
+
+  return `/api/companies/me/workers`
+}
+
+/**
+ * @summary List only workers and invitations owned by the signed-in approved company
+ */
+export const listCompanyWorkers = async ( options?: Parameters<typeof customFetch>[1]): Promise<CompanyManagedWorker[]> => {
+
+  return customFetch<CompanyManagedWorker[]>(getListCompanyWorkersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCompanyWorkersQueryKey = () => {
+    return [
+    `/api/companies/me/workers`
+    ] as const;
+    }
+
+
+export const getListCompanyWorkersQueryOptions = <TData = Awaited<ReturnType<typeof listCompanyWorkers>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCompanyWorkers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCompanyWorkersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCompanyWorkers>>> = ({ signal }) => listCompanyWorkers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCompanyWorkers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCompanyWorkersQueryResult = NonNullable<Awaited<ReturnType<typeof listCompanyWorkers>>>
+export type ListCompanyWorkersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List only workers and invitations owned by the signed-in approved company
+ */
+
+export function useListCompanyWorkers<TData = Awaited<ReturnType<typeof listCompanyWorkers>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCompanyWorkers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCompanyWorkersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCompanyWorkerInvitationUrl = () => {
+
+
+
+
+  return `/api/companies/me/workers`
+}
+
+/**
+ * @summary Create a company-owned worker profile and email a Clerk invitation
+ */
+export const createCompanyWorkerInvitation = async (companyWorkerCreateInput: CompanyWorkerCreateInput, options?: Parameters<typeof customFetch>[1]): Promise<CompanyManagedWorker> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CompanyManagedWorker>(getCreateCompanyWorkerInvitationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(companyWorkerCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCompanyWorkerInvitationMutationKey = () => ['createCompanyWorkerInvitation'] as const;
+
+export const getCreateCompanyWorkerInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompanyWorkerInvitation>>, TError,CreateCompanyWorkerInvitationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCompanyWorkerInvitation>>, TError,CreateCompanyWorkerInvitationMutationVariables, TContext> => {
+
+const mutationKey = getCreateCompanyWorkerInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCompanyWorkerInvitation>>, CreateCompanyWorkerInvitationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCompanyWorkerInvitation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCompanyWorkerInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof createCompanyWorkerInvitation>>>
+    export type CreateCompanyWorkerInvitationMutationBody = BodyType<CompanyWorkerCreateInput>
+    export type CreateCompanyWorkerInvitationMutationError = ErrorType<void>
+    export type CreateCompanyWorkerInvitationMutationVariables = {data: BodyType<CompanyWorkerCreateInput>}
+
+    /**
+ * @summary Create a company-owned worker profile and email a Clerk invitation
+ */
+export const useCreateCompanyWorkerInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCompanyWorkerInvitation>>, TError,CreateCompanyWorkerInvitationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCompanyWorkerInvitation>>,
+        TError,
+        CreateCompanyWorkerInvitationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateCompanyWorkerInvitationMutationOptions(options));
+    }
+
+export const getUpdateCompanyWorkerUrl = (workerId: number,) => {
+
+
+
+
+  return `/api/companies/me/workers/${workerId}`
+}
+
+/**
+ * @summary Update a worker profile owned by the signed-in company
+ */
+export const updateCompanyWorker = async (workerId: number,
+    companyWorkerUpdateInput: CompanyWorkerUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<CompanyManagedWorker> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CompanyManagedWorker>(getUpdateCompanyWorkerUrl(workerId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(companyWorkerUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCompanyWorkerMutationKey = () => ['updateCompanyWorker'] as const;
+
+export const getUpdateCompanyWorkerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCompanyWorker>>, TError,UpdateCompanyWorkerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCompanyWorker>>, TError,UpdateCompanyWorkerMutationVariables, TContext> => {
+
+const mutationKey = getUpdateCompanyWorkerMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCompanyWorker>>, UpdateCompanyWorkerMutationVariables> = (props) => {
+          const {workerId,data} = props ?? {};
+
+          return  updateCompanyWorker(workerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCompanyWorkerMutationResult = NonNullable<Awaited<ReturnType<typeof updateCompanyWorker>>>
+    export type UpdateCompanyWorkerMutationBody = BodyType<CompanyWorkerUpdateInput>
+    export type UpdateCompanyWorkerMutationError = ErrorType<void>
+    export type UpdateCompanyWorkerMutationVariables = {workerId: number;data: BodyType<CompanyWorkerUpdateInput>}
+
+    /**
+ * @summary Update a worker profile owned by the signed-in company
+ */
+export const useUpdateCompanyWorker = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCompanyWorker>>, TError,UpdateCompanyWorkerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCompanyWorker>>,
+        TError,
+        UpdateCompanyWorkerMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateCompanyWorkerMutationOptions(options));
+    }
+
+export const getResendCompanyWorkerInvitationUrl = (workerId: number,) => {
+
+
+
+
+  return `/api/companies/me/workers/${workerId}/resend-invitation`
+}
+
+/**
+ * @summary Send a fresh Clerk invitation to a pending company worker
+ */
+export const resendCompanyWorkerInvitation = async (workerId: number,
+    workerInvitationRedirectInput: WorkerInvitationRedirectInput, options?: Parameters<typeof customFetch>[1]): Promise<CompanyManagedWorker> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CompanyManagedWorker>(getResendCompanyWorkerInvitationUrl(workerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workerInvitationRedirectInput)
+  }
+);}
+
+
+
+
+
+export const getResendCompanyWorkerInvitationMutationKey = () => ['resendCompanyWorkerInvitation'] as const;
+
+export const getResendCompanyWorkerInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendCompanyWorkerInvitation>>, TError,ResendCompanyWorkerInvitationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendCompanyWorkerInvitation>>, TError,ResendCompanyWorkerInvitationMutationVariables, TContext> => {
+
+const mutationKey = getResendCompanyWorkerInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendCompanyWorkerInvitation>>, ResendCompanyWorkerInvitationMutationVariables> = (props) => {
+          const {workerId,data} = props ?? {};
+
+          return  resendCompanyWorkerInvitation(workerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendCompanyWorkerInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof resendCompanyWorkerInvitation>>>
+    export type ResendCompanyWorkerInvitationMutationBody = BodyType<WorkerInvitationRedirectInput>
+    export type ResendCompanyWorkerInvitationMutationError = ErrorType<void>
+    export type ResendCompanyWorkerInvitationMutationVariables = {workerId: number;data: BodyType<WorkerInvitationRedirectInput>}
+
+    /**
+ * @summary Send a fresh Clerk invitation to a pending company worker
+ */
+export const useResendCompanyWorkerInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendCompanyWorkerInvitation>>, TError,ResendCompanyWorkerInvitationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendCompanyWorkerInvitation>>,
+        TError,
+        ResendCompanyWorkerInvitationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResendCompanyWorkerInvitationMutationOptions(options));
+    }
+
+export const getRevokeCompanyWorkerInvitationUrl = (workerId: number,) => {
+
+
+
+
+  return `/api/companies/me/workers/${workerId}/revoke-invitation`
+}
+
+/**
+ * @summary Revoke a pending worker invitation without deleting the worker profile
+ */
+export const revokeCompanyWorkerInvitation = async (workerId: number, options?: Parameters<typeof customFetch>[1]): Promise<CompanyManagedWorker> => {
+
+  return customFetch<CompanyManagedWorker>(getRevokeCompanyWorkerInvitationUrl(workerId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeCompanyWorkerInvitationMutationKey = () => ['revokeCompanyWorkerInvitation'] as const;
+
+export const getRevokeCompanyWorkerInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeCompanyWorkerInvitation>>, TError,RevokeCompanyWorkerInvitationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeCompanyWorkerInvitation>>, TError,RevokeCompanyWorkerInvitationMutationVariables, TContext> => {
+
+const mutationKey = getRevokeCompanyWorkerInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeCompanyWorkerInvitation>>, RevokeCompanyWorkerInvitationMutationVariables> = (props) => {
+          const {workerId} = props ?? {};
+
+          return  revokeCompanyWorkerInvitation(workerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeCompanyWorkerInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof revokeCompanyWorkerInvitation>>>
+
+    export type RevokeCompanyWorkerInvitationMutationError = ErrorType<void>
+    export type RevokeCompanyWorkerInvitationMutationVariables = {workerId: number}
+
+    /**
+ * @summary Revoke a pending worker invitation without deleting the worker profile
+ */
+export const useRevokeCompanyWorkerInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeCompanyWorkerInvitation>>, TError,RevokeCompanyWorkerInvitationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeCompanyWorkerInvitation>>,
+        TError,
+        RevokeCompanyWorkerInvitationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRevokeCompanyWorkerInvitationMutationOptions(options));
+    }
+
+export const getDeactivateCompanyWorkerUrl = (workerId: number,) => {
+
+
+
+
+  return `/api/companies/me/workers/${workerId}/deactivate`
+}
+
+/**
+ * @summary Deactivate a worker and disable new QR tips while preserving their history
+ */
+export const deactivateCompanyWorker = async (workerId: number, options?: Parameters<typeof customFetch>[1]): Promise<CompanyManagedWorker> => {
+
+  return customFetch<CompanyManagedWorker>(getDeactivateCompanyWorkerUrl(workerId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeactivateCompanyWorkerMutationKey = () => ['deactivateCompanyWorker'] as const;
+
+export const getDeactivateCompanyWorkerMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deactivateCompanyWorker>>, TError,DeactivateCompanyWorkerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deactivateCompanyWorker>>, TError,DeactivateCompanyWorkerMutationVariables, TContext> => {
+
+const mutationKey = getDeactivateCompanyWorkerMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deactivateCompanyWorker>>, DeactivateCompanyWorkerMutationVariables> = (props) => {
+          const {workerId} = props ?? {};
+
+          return  deactivateCompanyWorker(workerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeactivateCompanyWorkerMutationResult = NonNullable<Awaited<ReturnType<typeof deactivateCompanyWorker>>>
+
+    export type DeactivateCompanyWorkerMutationError = ErrorType<void>
+    export type DeactivateCompanyWorkerMutationVariables = {workerId: number}
+
+    /**
+ * @summary Deactivate a worker and disable new QR tips while preserving their history
+ */
+export const useDeactivateCompanyWorker = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deactivateCompanyWorker>>, TError,DeactivateCompanyWorkerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deactivateCompanyWorker>>,
+        TError,
+        DeactivateCompanyWorkerMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeactivateCompanyWorkerMutationOptions(options));
+    }
+
+export const getGetMyWorkerInvitationUrl = () => {
+
+
+
+
+  return `/api/workers/me/invitation`
+}
+
+/**
+ * @summary Find the signed-in user's pending company worker invitation
+ */
+export const getMyWorkerInvitation = async ( options?: Parameters<typeof customFetch>[1]): Promise<MyWorkerInvitationResponse> => {
+
+  return customFetch<MyWorkerInvitationResponse>(getGetMyWorkerInvitationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyWorkerInvitationQueryKey = () => {
+    return [
+    `/api/workers/me/invitation`
+    ] as const;
+    }
+
+
+export const getGetMyWorkerInvitationQueryOptions = <TData = Awaited<ReturnType<typeof getMyWorkerInvitation>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerInvitation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyWorkerInvitationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyWorkerInvitation>>> = ({ signal }) => getMyWorkerInvitation({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerInvitation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyWorkerInvitationQueryResult = NonNullable<Awaited<ReturnType<typeof getMyWorkerInvitation>>>
+export type GetMyWorkerInvitationQueryError = ErrorType<void>
+
+
+/**
+ * @summary Find the signed-in user's pending company worker invitation
+ */
+
+export function useGetMyWorkerInvitation<TData = Awaited<ReturnType<typeof getMyWorkerInvitation>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyWorkerInvitation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyWorkerInvitationQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAcceptMyWorkerInvitationUrl = () => {
+
+
+
+
+  return `/api/workers/me/accept-invitation`
+}
+
+/**
+ * @summary Accept an invitation using the verified Clerk email that received it
+ */
+export const acceptMyWorkerInvitation = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkerProfileState> => {
+
+  return customFetch<WorkerProfileState>(getAcceptMyWorkerInvitationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAcceptMyWorkerInvitationMutationKey = () => ['acceptMyWorkerInvitation'] as const;
+
+export const getAcceptMyWorkerInvitationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptMyWorkerInvitation>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptMyWorkerInvitation>>, TError,void, TContext> => {
+
+const mutationKey = getAcceptMyWorkerInvitationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptMyWorkerInvitation>>, void> = () => {
+
+
+          return  acceptMyWorkerInvitation(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptMyWorkerInvitationMutationResult = NonNullable<Awaited<ReturnType<typeof acceptMyWorkerInvitation>>>
+
+    export type AcceptMyWorkerInvitationMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Accept an invitation using the verified Clerk email that received it
+ */
+export const useAcceptMyWorkerInvitation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptMyWorkerInvitation>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acceptMyWorkerInvitation>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAcceptMyWorkerInvitationMutationOptions(options));
     }
 
 export const getListPendingCompaniesUrl = () => {

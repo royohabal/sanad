@@ -7,10 +7,12 @@
  */
 import type { Worker } from './worker';
 import type { WorkerCompanyRequest } from './workerCompanyRequest';
+import type { WorkerProfileStateAccountStatus } from './workerProfileStateAccountStatus';
 import type { WorkerProfileStateCompanyStatus } from './workerProfileStateCompanyStatus';
 
 export interface WorkerProfileState {
   worker: Worker | null;
   companyStatus: WorkerProfileStateCompanyStatus;
+  accountStatus: WorkerProfileStateAccountStatus;
   companyRequest: WorkerCompanyRequest | null;
 }

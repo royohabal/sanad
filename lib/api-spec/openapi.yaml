@@ -553,6 +553,225 @@ paths:
           description: Request not found for this company
         "409":
           description: Request is no longer pending
+  /companies/me/workers:
+    get:
+      operationId: listCompanyWorkers
+      tags: [sanad]
+      summary: List only workers and invitations owned by the signed-in approved company
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Company-scoped worker roster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompanyManagedWorker"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Approved company access is required
+        "404":
+          description: Company profile not found
+    post:
+      operationId: createCompanyWorkerInvitation
+      tags: [sanad]
+      summary: Create a company-owned worker profile and email a Clerk invitation
+      security:
+        - ClerkSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyWorkerCreateInput"
+      responses:
+        "201":
+          description: Worker profile and email invitation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyManagedWorker"
+        "400":
+          description: Invalid worker details or invitation redirect
+        "401":
+          description: Sign-in required
+        "403":
+          description: Approved company access is required
+        "404":
+          description: Company profile not found
+        "409":
+          description: Worker or email already belongs to another active invitation
+        "502":
+          description: Clerk could not send the invitation email
+  /companies/me/workers/{workerId}:
+    patch:
+      operationId: updateCompanyWorker
+      tags: [sanad]
+      summary: Update a worker profile owned by the signed-in company
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: workerId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyWorkerUpdateInput"
+      responses:
+        "200":
+          description: Updated company worker profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyManagedWorker"
+        "400":
+          description: Invalid profile details
+        "401":
+          description: Sign-in required
+        "403":
+          description: Approved company access is required
+        "404":
+          description: Worker not found for this company
+  /companies/me/workers/{workerId}/resend-invitation:
+    post:
+      operationId: resendCompanyWorkerInvitation
+      tags: [sanad]
+      summary: Send a fresh Clerk invitation to a pending company worker
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: workerId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkerInvitationRedirectInput"
+      responses:
+        "200":
+          description: Fresh email invitation sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyManagedWorker"
+        "400":
+          description: Invalid invitation redirect
+        "401":
+          description: Sign-in required
+        "403":
+          description: Approved company access is required
+        "404":
+          description: Pending worker not found
+        "409":
+          description: Worker is already active or has no resubmittable invitation
+        "502":
+          description: Clerk could not send the invitation email
+  /companies/me/workers/{workerId}/revoke-invitation:
+    post:
+      operationId: revokeCompanyWorkerInvitation
+      tags: [sanad]
+      summary: Revoke a pending worker invitation without deleting the worker profile
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: workerId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Invitation revoked; profile and history retained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyManagedWorker"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Approved company access is required
+        "404":
+          description: Pending worker not found
+        "409":
+          description: No pending invitation can be revoked
+        "502":
+          description: Clerk could not revoke the invitation
+  /companies/me/workers/{workerId}/deactivate:
+    post:
+      operationId: deactivateCompanyWorker
+      tags: [sanad]
+      summary: Deactivate a worker and disable new QR tips while preserving their history
+      security:
+        - ClerkSession: []
+      parameters:
+        - in: path
+          name: workerId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Worker deactivated without deleting financial history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyManagedWorker"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Approved company access is required
+        "404":
+          description: Worker not found for this company
+        "409":
+          description: Worker is not active
+  /workers/me/invitation:
+    get:
+      operationId: getMyWorkerInvitation
+      tags: [sanad]
+      summary: Find the signed-in user's pending company worker invitation
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Invitation matching the signed-in verified email, if one exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyWorkerInvitationResponse"
+        "401":
+          description: Sign-in required
+  /workers/me/accept-invitation:
+    post:
+      operationId: acceptMyWorkerInvitation
+      tags: [sanad]
+      summary: Accept an invitation using the verified Clerk email that received it
+      security:
+        - ClerkSession: []
+      responses:
+        "200":
+          description: Company worker profile activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkerProfileState"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Sign in through the newest Clerk invitation email
+        "404":
+          description: No current invitation matches the signed-in account
+        "409":
+          description: The worker or company is no longer eligible
+        "410":
+          description: Invitation expired or was revoked
   /admin/companies:
     get:
       operationId: listPendingCompanies
@@ -1599,7 +1818,7 @@ components:
         jobTitle: { type: string, minLength: 2, maxLength: 80 }
     WorkerProfileState:
       type: object
-      required: [worker, companyStatus, companyRequest]
+      required: [worker, companyStatus, companyRequest, accountStatus]
       properties:
         worker:
           oneOf:
@@ -1608,6 +1827,9 @@ components:
         companyStatus:
           type: string
           enum: [none, pending, approved, rejected]
+        accountStatus:
+          type: string
+          enum: [none, invited, active, deactivated]
         companyRequest:
           oneOf:
             - $ref: "#/components/schemas/WorkerCompanyRequest"
@@ -1634,6 +1856,63 @@ components:
       required: [name]
       properties:
         name: { type: string, minLength: 2, maxLength: 120 }
+    WorkerInvitationRedirectInput:
+      type: object
+      properties:
+        redirectPath:
+          type: string
+          pattern: "^/(?:[A-Za-z0-9_-]+/)?worker/invitation$"
+          maxLength: 100
+    CompanyWorkerCreateInput:
+      allOf:
+        - $ref: "#/components/schemas/WorkerInvitationRedirectInput"
+        - type: object
+          required: [name, emailAddress]
+          properties:
+            name: { type: string, minLength: 2, maxLength: 100 }
+            emailAddress: { type: string, format: email, maxLength: 254 }
+            jobTitle: { type: ["string", "null"], maxLength: 80 }
+            department: { type: ["string", "null"], maxLength: 80 }
+    CompanyWorkerUpdateInput:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        jobTitle: { type: ["string", "null"], maxLength: 80 }
+        department: { type: ["string", "null"], maxLength: 80 }
+    CompanyManagedWorker:
+      type: object
+      required: [workerId, publicId, name, emailAddress, workplace, jobTitle, department, status, invitationStatus, invitationExpiresAt, createdAt]
+      properties:
+        workerId: { type: integer }
+        publicId: { type: string }
+        name: { type: string }
+        emailAddress: { type: ["string", "null"], format: email }
+        workplace: { type: string }
+        jobTitle: { type: string }
+        department: { type: ["string", "null"] }
+        status: { type: string, enum: [invited, active, deactivated] }
+        invitationStatus:
+          type: ["string", "null"]
+          enum: [pending, accepted, expired, revoked, null]
+        invitationExpiresAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    MyWorkerInvitationPreview:
+      type: object
+      required: [workerName, jobTitle, companyName, invitationExpiresAt]
+      properties:
+        workerName: { type: string }
+        jobTitle: { type: string }
+        companyName: { type: string }
+        invitationExpiresAt: { type: string, format: date-time }
+    MyWorkerInvitationResponse:
+      type: object
+      required: [invitation]
+      properties:
+        invitation:
+          oneOf:
+            - $ref: "#/components/schemas/MyWorkerInvitationPreview"
+            - type: "null"
     CompanyOption:
       type: object
       required: [id, name]

@@ -101,6 +101,16 @@ export const WorkerProfileStateCompanyStatus = {
   rejected: 'rejected',
 } as const;
 
+export type WorkerProfileStateAccountStatus = typeof WorkerProfileStateAccountStatus[keyof typeof WorkerProfileStateAccountStatus];
+
+
+export const WorkerProfileStateAccountStatus = {
+  none: 'none',
+  invited: 'invited',
+  active: 'active',
+  deactivated: 'deactivated',
+} as const;
+
 export type WorkerCompanyRequestStatus = typeof WorkerCompanyRequestStatus[keyof typeof WorkerCompanyRequestStatus];
 
 
@@ -121,6 +131,7 @@ export interface WorkerCompanyRequest {
 export interface WorkerProfileState {
   worker: Worker | null;
   companyStatus: WorkerProfileStateCompanyStatus;
+  accountStatus: WorkerProfileStateAccountStatus;
   companyRequest: WorkerCompanyRequest | null;
 }
 
@@ -151,6 +162,103 @@ export interface CompanyProfileInput {
      * @maxLength 120
      */
   name: string;
+}
+
+export interface WorkerInvitationRedirectInput {
+  /**
+     * @maxLength 100
+     * @pattern ^/(?:[A-Za-z0-9_-]+/)?worker/invitation$
+     */
+  redirectPath?: string;
+}
+
+export type CompanyWorkerCreateInput = WorkerInvitationRedirectInput & ({
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  name: string;
+  /** @maxLength 254 */
+  emailAddress: string;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  jobTitle?: string | null;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  department?: string | null;
+});
+
+export interface CompanyWorkerUpdateInput {
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  name?: string;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  jobTitle?: string | null;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  department?: string | null;
+}
+
+export type CompanyManagedWorkerStatus = typeof CompanyManagedWorkerStatus[keyof typeof CompanyManagedWorkerStatus];
+
+
+export const CompanyManagedWorkerStatus = {
+  invited: 'invited',
+  active: 'active',
+  deactivated: 'deactivated',
+} as const;
+
+/**
+ * @nullable
+ */
+export type CompanyManagedWorkerInvitationStatus = typeof CompanyManagedWorkerInvitationStatus[keyof typeof CompanyManagedWorkerInvitationStatus] | null;
+
+
+export const CompanyManagedWorkerInvitationStatus = {
+  pending: 'pending',
+  accepted: 'accepted',
+  expired: 'expired',
+  revoked: 'revoked',
+} as const;
+
+export interface CompanyManagedWorker {
+  workerId: number;
+  publicId: string;
+  name: string;
+  /** @nullable */
+  emailAddress: string | null;
+  workplace: string;
+  jobTitle: string;
+  /** @nullable */
+  department: string | null;
+  status: CompanyManagedWorkerStatus;
+  /** @nullable */
+  invitationStatus: CompanyManagedWorkerInvitationStatus;
+  /** @nullable */
+  invitationExpiresAt: string | null;
+  createdAt: string;
+}
+
+export interface MyWorkerInvitationPreview {
+  workerName: string;
+  jobTitle: string;
+  companyName: string;
+  invitationExpiresAt: string;
+}
+
+export interface MyWorkerInvitationResponse {
+  invitation: MyWorkerInvitationPreview | null;
 }
 
 export interface CompanyOption {
