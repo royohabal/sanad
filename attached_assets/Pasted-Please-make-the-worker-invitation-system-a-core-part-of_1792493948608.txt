@@ -1,0 +1,34 @@
+Please make the worker invitation system a core part of SANAD's company-managed worker workflow.
+
+1. **Company invites a worker**
+   - In the company dashboard, add an "Invite Worker" button.
+   - The company enters the worker's name and email address.
+   - The company can optionally assign a job title or department.
+   - Show invitation status: Pending, Accepted, Expired, or Revoked.
+
+2. **Secure invitation**
+   - Use Clerk's supported invitation/account-creation flow where appropriate.
+   - Send the worker a secure invitation link to their email so they can activate their account and set up access themselves.
+   - Do not let company administrators choose or view workers' passwords.
+   - Invitations must expire and be revocable. Prevent unauthorized people from accepting invitations intended for another email address.
+   - Ensure the invitation is associated with the correct company and cannot be reused by another worker or company.
+
+3. **After the worker accepts**
+   - Link the authenticated Clerk user to the correct worker record in MongoDB and the inviting company.
+   - Give the worker access to their own dashboard, digital wallet, tip history, and personal QR code.
+   - Let the worker download and print their QR code.
+   - Do not let workers access company-admin features or other workers' private information.
+
+4. **Company management**
+   - Allow company admins to resend or revoke pending invitations.
+   - Show each worker's invitation and account status.
+   - Prevent duplicate invitations for an existing worker account.
+   - When a worker is deactivated or leaves the company, revoke their access appropriately while preserving historical tips, ledger entries, and settlements.
+
+5. **Testing and configuration**
+   - Check whether Clerk and the current deployment have email invitations configured.
+   - If email delivery requires additional setup, tell me exactly what to configure rather than pretending an email was sent.
+   - Test the full invitation, acceptance, login, authorization, and QR-code journey.
+   - Preserve the existing MongoDB data and all four money flows. Do not deploy automatically.
+
+Report which parts actually work and any configuration still required.

@@ -1,0 +1,121 @@
+# SANAD — Switch to a Company-Managed Worker System
+
+I have changed SANAD's business model. **There must be no independent workers. All workers must belong to a registered company that manages their SANAD accounts.**
+
+Inspect the existing codebase, MongoDB models, Clerk authentication, worker accounts, QR codes, wallets, tips, settlements, and payment implementation before making changes. Modify the existing project instead of rebuilding it.
+
+Preserve the existing parent/child wallet features and individual send/request functionality. This change applies to the worker and company system.
+
+## 1. Company registration and dashboard
+
+- Companies register and create their own company account.
+- Each company has a secure company-admin dashboard.
+- A company administrator can add, edit, deactivate, and manage workers belonging to that company.
+- The company dashboard displays the company's worker list, individual worker tip totals, aggregate tip reports, and monthly settlement information.
+- Companies must only be able to access workers and records belonging to their own company.
+- Preserve the existing company approval or onboarding process if one exists.
+
+## 2. Company creates worker accounts
+
+- Remove the independent-worker registration and onboarding flow.
+- Companies create worker profiles and worker login accounts from the company dashboard.
+- Each worker must have a unique account linked to exactly one company at a time.
+- Store the worker's company association in MongoDB and enforce it on the server.
+- Use the existing Clerk authentication system. Follow Clerk's supported account-creation and invitation approach rather than storing passwords in MongoDB or exposing administrative credentials.
+- Give workers a secure way to receive their invitation, activate their account, sign in, and recover access.
+- Prevent duplicate worker accounts and duplicate email assignments where inappropriate.
+- Company administrators may manage their own workers but must not be able to access another company's records.
+- If the existing app has a platform-admin role, preserve its separation from company administrators.
+
+## 3. Worker dashboard
+
+Every worker must be able to sign in to their own SANAD account and see only their own permitted information.
+
+Create or update the worker dashboard to include:
+- Worker name and profile
+- Company name
+- Personal worker QR code
+- A button to download the QR code as a printable image
+- A print-friendly QR code page with the worker's name and SANAD branding
+- Total tips received
+- Current tip balance
+- Transaction history with dates, amounts in KWD, and statuses
+- Monthly tip summary, if supported by the existing data
+- Clear loading, empty, and error states
+
+Workers can view their own wallet and tip history, but cannot edit their balance, create fake tips, change their company, or view another worker's private data.
+
+## 4. QR codes and public tipping
+
+- Each company-managed worker receives a unique, stable QR code.
+- Scanning the QR code opens that worker's public tipping page.
+- Public customers must be able to tip without registering for a SANAD account.
+- Display the correct worker and, where appropriate, the company name.
+- A public QR code must not expose the worker's email, Clerk user ID, private wallet information, or internal database IDs.
+- Do not change an existing worker's QR identifier unnecessarily.
+- When a worker is deactivated or leaves a company, prevent unauthorized future account access and apply a clear policy to the public QR page. Preserve historical tips and transaction records.
+- Prevent one worker's QR code from being used to credit another worker's wallet.
+
+## 5. Worker wallets and tips
+
+- Every worker has a company-linked digital tip wallet or ledger.
+- Record tips in MongoDB and associate each tip with the correct worker and company.
+- Workers can view their current balance, total tips received, and transaction history.
+- The server calculates balances from authoritative ledger records or a correctly maintained balance, not from values submitted by the browser.
+- Preserve existing tip records, ratings, checkout records, worker ledgers, and settlement records.
+- Do not erase old records when changing the worker model.
+- Ensure every new tip is recorded once and cannot be duplicated through repeated requests or payment callbacks.
+
+## 6. Company settlements
+
+- Preserve the existing monthly settlement feature.
+- Companies can review monthly tip totals for each worker.
+- Show salary and tips separately wherever salary information exists.
+- Prevent the same tips from being included in multiple settlements.
+- Maintain an auditable history of settlement periods and statuses.
+- Do not claim that a settlement or payout has reached a bank account unless an actual supported payout integration exists. For this university project, keep settlement actions clearly labelled as simulated if no real payout provider is configured.
+
+## 7. Payment integration
+
+- Preserve the existing worker tip checkout, parent child-wallet top-up, individual transfers, and money requests.
+- Continue investigating the Stripe configuration separately. Do not let a Stripe failure break worker account creation, QR generation, or wallet history.
+- Use Stripe test Checkout only if the configured test account successfully creates a valid Checkout Session in the chosen currency.
+- Otherwise, keep the clearly labelled simulated KWD checkout for the university demo.
+- Do not silently convert KWD to another currency.
+- Never credit a worker's wallet because a success URL was opened. Verify payments server-side or record an explicitly simulated demo payment.
+- Internal individual-to-individual transfers must continue to use the internal wallet ledger, not an external checkout for every transfer.
+
+## 8. Security and migration
+
+- Preserve MongoDB and Clerk.
+- Remove or disable independent-worker registration, worker self-onboarding, and any independent-worker-only withdrawal flow.
+- Inspect old independent-worker records before deciding how to handle them. Do not delete records, tips, or ledgers. Report whether existing workers need to be assigned to a company.
+- Protect all private routes and APIs with server-side authentication and authorization.
+- Ensure company administrators can access only their own company and its workers.
+- Ensure workers can access only their own worker profile, QR code, wallet, and tip history.
+- Apply rate limiting to public tipping endpoints and validate all amounts on the server.
+- Preserve parent/child wallet permissions and individual transfer authorization.
+- Do not expose secrets, private account information, or wallet data in public endpoints.
+- Do not modify production data or deploy automatically.
+
+## 9. Testing and final report
+
+Run relevant typechecks, tests, and production builds.
+
+Verify:
+1. A company can register or access its authorized company dashboard.
+2. A company can create a worker and provide secure login access.
+3. The worker can sign in and view their own dashboard.
+4. The worker can download and print their own QR code.
+5. Scanning the QR code opens the correct worker's tipping page.
+6. A tip is recorded against the correct worker and company.
+7. A worker cannot access another worker's private information.
+8. One company cannot access another company's workers or settlements.
+9. Old tips and ledgers remain intact.
+10. Parent/child wallets, individual transfers, money requests, and existing payment flows still work.
+11. Independent-worker registration and withdrawal are no longer offered.
+12. No duplicate tips or settlements can be created.
+
+At the end, provide a clear report of changed files, routes, database changes, migration requirements, tests actually passed, remaining limitations, and the deployment steps needed for both frontend and API.
+
+Do not claim any test passed unless it was actually executed. Do not deploy or delete production data.
