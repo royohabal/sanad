@@ -1,0 +1,40 @@
+I showed my SANAD (سند) fintech project to my instructor, and his feedback was that the website is too crowded with words and needs to be simplified. Please redesign the existing website to make it cleaner, more visual, and easier to understand at a glance.
+
+**Design goals:**
+- Keep the existing SANAD branding and color palette:
+  - Deep Burgundy: #581C2B
+  - Warm Coral: #EF805F
+  - Warm Cream: #F5E8D8
+  - Dark Wine: #3B1720
+- Use a modern fintech design that feels friendly, trustworthy, and slightly gamified.
+- Reduce paragraphs, long descriptions, repeated explanations, and unnecessary labels.
+- Replace long text with short headings, simple icons, illustrations, visual statistics, and clear buttons.
+- Use more whitespace, consistent spacing, and fewer elements on each screen.
+- Make each page focus on **one main purpose** with one clear primary action.
+- Keep text concise: headings should generally be 2–6 words, and descriptions should ideally be one short sentence.
+- Use cards only when they help organize information. Avoid placing every piece of information inside a separate card.
+- Keep animations subtle and purposeful, such as gentle fade-ins and hover effects.
+
+**Simplify the main screens:**
+
+1. **Landing page:** Use a short headline, one sentence explaining SANAD, a clear “Scan to Tip” or “Get Started” action, and a simple visual showing how QR tipping works. Remove long introductory paragraphs.
+
+2. **Customer tipping page:** Make the worker’s name and photo or avatar the focus. Show a few easy-to-select tip amounts, an optional custom amount, and a simple optional rating or message. Keep the process quick, ideally under 10 seconds, with no customer account required.
+
+3. **Worker dashboard:** Highlight only the most important information: total tips, current wallet balance, and recent activity. Use large numbers and simple icons instead of long descriptions.
+
+4. **Company dashboard:** Prioritize the number of workers, total tips, and monthly settlement status. Use a compact worker table or list with clear actions. Keep salary and tips clearly separate where applicable.
+
+5. **Wallet and family features:** Simplify the layout into clear actions such as “Send,” “Request,” and “Activity.” Keep secondary information hidden until the user needs it.
+
+6. **Checkout and payment status:** Clearly distinguish real Stripe test checkout from simulated demo checkout. Do not imply that real payments or payouts are working when they are not.
+
+**Important constraints:**
+- This is an existing project. Improve the current design rather than rebuilding the application from scratch.
+- Preserve MongoDB, Clerk authentication, existing APIs, database records, QR functionality, worker invitations, company management, wallet functionality, and existing routes.
+- Do not remove working features or change business logic just to simplify the interface.
+- Do not hardcode or invent financial data.
+- Keep the website responsive on mobile and desktop.
+- Make the interface understandable to someone seeing SANAD for the first time, without needing to read long explanations.
+
+Before finishing, review every major page and remove unnecessary text, duplicated information, and visual clutter. Prioritize simplicity, clarity, and usability over adding more features.
