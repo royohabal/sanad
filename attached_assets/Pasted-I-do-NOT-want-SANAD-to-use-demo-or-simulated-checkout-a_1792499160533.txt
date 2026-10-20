@@ -1,0 +1,48 @@
+I do NOT want SANAD to use demo or simulated checkout anymore. I want the website to use real Stripe Checkout integration in TEST MODE first, and I want the actual Stripe-hosted checkout page to open when a customer tips.
+
+Please implement and verify this in the existing codebase.
+
+### 1. Stripe must be the checkout provider
+- Make Stripe the only checkout provider for customer tip payments.
+- Remove automatic fallback to simulated checkout.
+- If Stripe is misconfigured or returns an error, show a clear error message and log the diagnostic details safely. Do not create a simulated payment instead.
+- Do not display a fake success page or credit a wallet for an unsuccessful payment.
+
+### 2. Fix the KWD currency issue
+Previously, Stripe returned `Invalid currency: kwd` when SANAD attempted to create a Checkout Session.
+
+- Keep SANAD's displayed prices, wallet balances, and tip records in KWD.
+- Use the existing exchange-rate provider to convert KWD to USD on the server.
+- Verify that the provider actually supports KWD-to-USD conversion and that its data is valid and sufficiently recent. Do not hardcode an exchange rate.
+- Display the KWD tip amount and the converted USD charge amount clearly before payment.
+- Send the converted amount to Stripe using USD and the correct integer amount in cents.
+- Check Stripe's minimum charge requirements and explain when a tip is too small to process.
+- Store the original KWD amount, USD charge amount, exchange rate, and currency details with the checkout record.
+- If conversion fails, stop checkout and explain the problem. Never silently use a different amount.
+
+### 3. Use Stripe securely
+- Read the Stripe secret key from the correct server-side environment variable.
+- Keep the secret key private. Never expose it in frontend code, logs, or responses.
+- Use Stripe Checkout Sessions created on the server.
+- Verify the payment status server-side before marking the tip as paid or updating a wallet or ledger.
+- Use Stripe webhooks with signature verification for reliable payment confirmation and prevent duplicate credits.
+- Keep Stripe in test mode while we verify the complete flow. Do not use live keys or charge real customers yet.
+
+### 4. Remove simulated payment behavior
+- Remove simulated checkout as an automatic or selectable payment method for customer tips.
+- If Stripe is unavailable, disable payment and show a clear error instead of pretending the transaction succeeded.
+- Do not change unrelated family wallet, company, worker invitation, QR, MongoDB, or Clerk functionality.
+
+### 5. Test the actual flow
+Please test all of these:
+1. A customer selects a tip in KWD.
+2. The server converts it to USD and creates a real Stripe test Checkout Session.
+3. The frontend receives a valid Stripe Checkout URL.
+4. The customer is redirected to Stripe's hosted checkout page.
+5. A successful Stripe test payment is verified before the tip is credited.
+6. A cancelled or failed payment does not credit the worker.
+7. Duplicate webhook events do not credit the tip twice.
+
+Run the relevant tests and build. Do not claim success unless Checkout Session creation and the redirect have actually been verified.
+
+At the end, tell me exactly which environment variables I need, whether a webhook endpoint and signing secret are required, what I must configure in Stripe, and whether I need to republish the app. Do not deploy automatically.
